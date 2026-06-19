@@ -1,0 +1,45 @@
+package com.mtc.mutuaConseil.models.fournisseurs.MutuellePro;
+
+import com.mtc.mutuaConseil.models.Enfant;
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+public class ApiviaMutPro {
+
+    private Long id;
+    // Informations personnelles
+    private String civilite;
+    private String nom;
+    private String prenom;
+    private String dateNaissance;
+    private String nomVoie;
+    private String numeroVoie;
+    private String codePostal;
+    private String ville;
+    private String telephone;
+    private String mail;
+    private String regime;
+
+    // Informations professionnelles
+    private String nomEntreprise;
+    private String siret;
+    private String adresseProfessionnelle;
+    private String codePostalProfessionnel;
+    private String villeProfessionnelle;
+    private String codeAPE;
+
+    // Informations sur le conjoint
+    private String civiliteConjoint;
+    private String nomConjoint;
+    private String prenomConjoint;
+    private String dateNaissanceConjoint;
+    private String telephoneConjoint;
+    private String mailConjoint;
+    private String regimeConjoint;
+
+    // Informations enfants
+    private List<Enfant> enfants;
+
+}

@@ -1,0 +1,7 @@
+sp.app.name=mutuaConseil
+db.url=jdbc:postgresql://localhost:5432/mutuaConseil
+db.username=VOTRE_USER_POSTGRES
+db.password=VOTRE_MOT_DE_PASSE
+db.driver=org.postgresql.Driver
+db.hikari.pool.name=HikariPool
+db.type=com.zaxxer.hikari.HikariDataSource
