@@ -12,5 +12,6 @@ public class CompteRequestDto {
     private Boolean actif;
     private String source;
     private int niveau;
+    private Integer ordre;
 }
 

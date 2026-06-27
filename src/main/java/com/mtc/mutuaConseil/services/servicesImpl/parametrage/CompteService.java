@@ -5,10 +5,15 @@ import com.mtc.mutuaConseil.dtos.responses.CompteResponseDto;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.repositories.CompteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+
+import static java.util.Objects.isNull;
 
 @Service
 public class CompteService {
@@ -16,7 +21,36 @@ public class CompteService {
     @Autowired
     private CompteRepository compteRepository;
 
+    private void validateOrdre(String typeAssurance, Integer ordre, Long excludeId) {
+        if (isNull(ordre)) return;
+        List<Compte> comptes = compteRepository.findAll();
+        for (Compte c : comptes) {
+            if (!isNull(excludeId) && c.getId().equals(excludeId)) continue;
+            if (typeAssurance != null && typeAssurance.equalsIgnoreCase(c.getTypeAssurance())
+                    && ordre.equals(c.getOrdre())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "L'ordre " + ordre + " est déjà utilisé par un autre service de type " + typeAssurance);
+            }
+        }
+    }
+
+    private CompteResponseDto toResponseDto(Compte c) {
+        CompteResponseDto dto = new CompteResponseDto();
+        dto.setId(c.getId());
+        dto.setUsername(c.getUsername());
+        dto.setPassword(c.getPassword());
+        dto.setNomFournisseur(c.getNomFournisseur());
+        dto.setUrlFournisseur(c.getUrlFournisseur());
+        dto.setTypeAssurance(c.getTypeAssurance());
+        dto.setActif(c.getActif());
+        dto.setSource(c.getSource());
+        dto.setNiveau(c.getNiveau());
+        dto.setOrdre(c.getOrdre());
+        return dto;
+    }
+
     public CompteResponseDto createCompte(CompteRequestDto compteRequestDto) {
+        validateOrdre(compteRequestDto.getTypeAssurance(), compteRequestDto.getOrdre(), null);
         Compte c = new Compte();
         c.setUsername(compteRequestDto.getUsername());
         c.setPassword(compteRequestDto.getPassword());
@@ -26,39 +60,21 @@ public class CompteService {
         c.setActif(compteRequestDto.getActif());
         c.setSource(compteRequestDto.getSource());
         c.setNiveau(compteRequestDto.getNiveau());
-        Compte createdCompte = compteRepository.save(c);
-        CompteResponseDto compteResponseDto = new CompteResponseDto();
-        compteResponseDto.setId(createdCompte.getId());
-        compteResponseDto.setUsername(createdCompte.getUsername());
-        compteResponseDto.setPassword(createdCompte.getPassword());
-        compteResponseDto.setNomFournisseur(createdCompte.getNomFournisseur());
-        compteResponseDto.setUrlFournisseur(createdCompte.getUrlFournisseur());
-        compteResponseDto.setTypeAssurance(createdCompte.getTypeAssurance());
-        compteResponseDto.setActif(createdCompte.getActif());
-        compteResponseDto.setSource(createdCompte.getSource());
-        compteResponseDto.setNiveau(createdCompte.getNiveau());
-        return compteResponseDto;
+        c.setOrdre(compteRequestDto.getOrdre());
+        return toResponseDto(compteRepository.save(c));
     }
 
     public CompteResponseDto updateCompte(Long id, CompteRequestDto compteRequestDto) {
+        validateOrdre(compteRequestDto.getTypeAssurance(), compteRequestDto.getOrdre(), id);
         Compte updatedCompte = compteRepository.getCompteById(id).orElseThrow();
         updatedCompte.setUsername(compteRequestDto.getUsername());
         updatedCompte.setPassword(compteRequestDto.getPassword());
-//        updatedCompte.setNomFournisseur(compteRequestDto.getNomFournisseur());
         updatedCompte.setUrlFournisseur(compteRequestDto.getUrlFournisseur());
         updatedCompte.setTypeAssurance(compteRequestDto.getTypeAssurance());
         updatedCompte.setActif(compteRequestDto.getActif());
         updatedCompte.setNiveau(compteRequestDto.getNiveau());
-        Compte compte = compteRepository.save(updatedCompte);
-        CompteResponseDto compteResponseDto = new CompteResponseDto();
-        compteResponseDto.setId(compte.getId());
-        compteResponseDto.setUsername(compte.getUsername());
-        compteResponseDto.setNomFournisseur(compte.getNomFournisseur());
-        compteResponseDto.setUrlFournisseur(compte.getUrlFournisseur());
-        compteResponseDto.setTypeAssurance(compte.getTypeAssurance());
-        compteResponseDto.setActif(compte.getActif());
-        compteResponseDto.setNiveau(compte.getNiveau());
-        return compteResponseDto;
+        updatedCompte.setOrdre(compteRequestDto.getOrdre());
+        return toResponseDto(compteRepository.save(updatedCompte));
     }
 
     public void updateCompte(Long id, String elt) {
@@ -68,16 +84,7 @@ public class CompteService {
     }
 
     public CompteResponseDto getCompteById(Long id) {
-        Compte compte = compteRepository.getCompteById(id).orElseThrow();
-        CompteResponseDto compteResponseDto = new CompteResponseDto();
-        compteResponseDto.setId(compte.getId());
-        compteResponseDto.setUsername(compte.getUsername());
-        compteResponseDto.setNomFournisseur(compte.getNomFournisseur());
-        compteResponseDto.setUrlFournisseur(compte.getUrlFournisseur());
-        compteResponseDto.setTypeAssurance(compte.getTypeAssurance());
-        compteResponseDto.setActif(compte.getActif());
-        compteResponseDto.setNiveau(compte.getNiveau());
-        return compteResponseDto;
+        return toResponseDto(compteRepository.getCompteById(id).orElseThrow());
     }
 
     public Compte getCompteFromId(Long id) {
@@ -85,30 +92,18 @@ public class CompteService {
     }
 
     public List<CompteResponseDto> getAllComptes() {
-        List<CompteResponseDto> compteResponseDtos = new ArrayList<>();
-        List<Compte> comptes = compteRepository.findAll();
-        for (Compte c : comptes) {
-            CompteResponseDto compteResponseDto = new CompteResponseDto();
-            compteResponseDto.setId(c.getId());
-            compteResponseDto.setUsername(c.getUsername());
-            compteResponseDto.setPassword(c.getPassword());
-            compteResponseDto.setNomFournisseur(c.getNomFournisseur());
-            compteResponseDto.setUrlFournisseur(c.getUrlFournisseur());
-            compteResponseDto.setTypeAssurance(c.getTypeAssurance());
-            compteResponseDto.setSource(c.getSource());
-            compteResponseDto.setActif(c.getActif());
-            compteResponseDto.setNiveau(c.getNiveau());
-            compteResponseDtos.add(compteResponseDto);
+        List<CompteResponseDto> dtos = new ArrayList<>();
+        for (Compte c : compteRepository.findAll()) {
+            dtos.add(toResponseDto(c));
         }
-        return compteResponseDtos;
+        return dtos;
     }
 
     public List<Compte> getComptes() {
         List<Compte> comptesActifs = new ArrayList<>();
-        List<Compte> comptes = compteRepository.findAll();
-        for(Compte c : comptes){
-            if(c.getActif()){
-               comptesActifs.add(c);
+        for (Compte c : compteRepository.findAll()) {
+            if (c.getActif() != null && c.getActif()) {
+                comptesActifs.add(c);
             }
         }
         return comptesActifs;
@@ -116,12 +111,15 @@ public class CompteService {
 
     public List<Compte> getComptes(String typeAssurance) {
         List<Compte> comptesActifs = new ArrayList<>();
-        List<Compte> comptes = compteRepository.findAll();
-        for (Compte c : comptes){
-            if (c.getActif() != null && c.getActif() && c.getTypeAssurance() != null && c.getTypeAssurance().equalsIgnoreCase(typeAssurance)){
+        for (Compte c : compteRepository.findAll()) {
+            if (c.getActif() != null && c.getActif()
+                    && c.getTypeAssurance() != null
+                    && c.getTypeAssurance().equalsIgnoreCase(typeAssurance)) {
                 comptesActifs.add(c);
             }
         }
+        comptesActifs.sort(Comparator.comparing(Compte::getOrdre,
+                Comparator.nullsLast(Comparator.naturalOrder())));
         return comptesActifs;
     }
 

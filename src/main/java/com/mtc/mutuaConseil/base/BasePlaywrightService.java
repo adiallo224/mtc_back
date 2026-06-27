@@ -57,7 +57,7 @@ public abstract class BasePlaywrightService {
 
     protected void humanLikeWait() {
         try {
-            Thread.sleep(1000 + (long)(Math.random() * 2000));
+            Thread.sleep(1000 + (long)(Math.random() * 1000));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -65,7 +65,7 @@ public abstract class BasePlaywrightService {
 
     protected void waitThread(int seconds) {
         try {
-            Thread.sleep(seconds * 1000);
+            Thread.sleep(seconds * 1000L);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

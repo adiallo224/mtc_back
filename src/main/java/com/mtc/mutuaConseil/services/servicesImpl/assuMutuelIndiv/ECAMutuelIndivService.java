@@ -10,6 +10,7 @@ import com.mtc.mutuaConseil.utils.TarifUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.Select;
@@ -34,9 +35,9 @@ public class ECAMutuelIndivService extends PageElementInteraction implements Lau
 
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
-        Tarif tarifECAMutuelIndivService = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);;
+        Tarif tarifECAMutuelIndivService = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);
         tarifECAMutuelIndivService.setNom(c.getNomFournisseur());
-        driver = new EdgeDriver();
+        driver = new ChromeDriver();
         driver.manage().window().maximize();
         actions = new Actions(driver);
         try {
@@ -81,7 +82,7 @@ public class ECAMutuelIndivService extends PageElementInteraction implements Lau
 
     private void choixComplementaire() {
         waitThread(2);
-        WebElement linkParticulier = waitForElement(driver, By.xpath("//*[@id=\"main-container\"]/div/div/div/div[2]/div[2]/div[2]/a[1]"), 10, 1);
+        WebElement linkParticulier = waitForElement(driver, By.xpath("a[href*='/nouveau-devis/particulier']"), 10, 1);
         linkParticulier.click();
         WebElement linkComplementaire = waitForElement(driver, By.xpath("//*[@id=\"panelsStayOpen-collapseOne\"]/div/div/div[1]/a"), 10, 1);
         linkComplementaire.click();

@@ -61,11 +61,11 @@ public class TarifFournisseurService {
             AMI3FMutuelIndivService ami3FMutuelIndivService,
             ApicilMutuelIndivService ApicilMutuelIndivService,
             ApiviaMutuelIndivService apiviaMutuelIndivService,
-            ECAMutuelIndivService ecaMutuelIndivService,
-            HennerMutuelIndivService hennerMutuelIndivService,
-            QuatremIndivMutuelIndivService quatremIndivMutuelIndivService,
-            RepamMutuelIndivService repamMutuelIndivService,
-            SmisoMutuelIndivService smisoMutuelIndivService
+            EcaHeomieMutuelIndivPlayWrightService ecaMutuelIndivService,
+            HennerMutuelIndivPlayWrightService hennerMutuelIndivService,
+            QuatremIndivMutuelIndivPlayWrightService quatremIndivMutuelIndivService,
+            RepamMutuelIndivPlayWrightService repamMutuelIndivService,
+            SmisoMutuelIndivPlyWrightService smisoMutuelIndivService
     ) {
         // Initialisation du map avec les services disposables
         // Mutuelle prêt

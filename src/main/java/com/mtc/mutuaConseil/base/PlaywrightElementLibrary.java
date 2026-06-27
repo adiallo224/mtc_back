@@ -9,6 +9,7 @@ import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.MouseButton;
 import com.microsoft.playwright.options.SelectOption;
 import com.microsoft.playwright.options.WaitForSelectorState;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +17,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
 public class PlaywrightElementLibrary {
 
     private static final Logger log = LoggerFactory.getLogger(PlaywrightElementLibrary.class);
@@ -26,41 +28,72 @@ public class PlaywrightElementLibrary {
         this.page = page;
     }
 
-    public Page getPage() {
-        return page;
-    }
-
     // ==================== MÉTHODES D'ATTENTE ====================
 
     /**
      * Attendre qu'un élément soit visible par sélecteur CSS
      */
+//    public Locator waitForElement(String selector, int timeoutSeconds) {
+//        try {
+//            Locator locator;
+//            // Détection automatique du type de sélecteur
+//            if (selector.startsWith("xpath=") || selector.startsWith("//") || selector.startsWith("(//")) {
+//                // XPath
+//                locator = page.locator("xpath=" + (selector.startsWith("xpath=") ? selector.substring(6) : selector));
+//            } else if (selector.startsWith("#")) {
+//                // ID CSS
+//                locator = page.locator(selector);
+//            } else if (selector.startsWith("name=")) {
+//                // Name
+//                locator = page.locator("[name='" + selector.substring(5) + "']");
+//            } else {
+//                // Par défaut CSS selector
+//                locator = page.locator(selector);
+//            }
+//            locator = locator.first(); // si plusieurs correspondances
+//            locator.waitFor(new Locator.WaitForOptions()
+//                    .setTimeout(timeoutSeconds * 1000)
+//                    .setState(WaitForSelectorState.VISIBLE));
+//
+//            return locator;
+//        } catch (Exception e) {
+//            log.error("Élément non trouvé avec le sélecteur: {}", selector, e);
+//            throw e;
+//        }
+//    }
+
     public Locator waitForElement(String selector, int timeoutSeconds) {
         try {
             Locator locator;
-            // Détection automatique du type de sélecteur
-            if (selector.startsWith("xpath=") || selector.startsWith("//") || selector.startsWith("(//")) {
-                // XPath
-                locator = page.locator("xpath=" + (selector.startsWith("xpath=") ? selector.substring(6) : selector));
-            } else if (selector.startsWith("#")) {
-                // ID CSS
-                locator = page.locator(selector);
-            } else if (selector.startsWith("name=")) {
-                // Name
-                locator = page.locator("[name='" + selector.substring(5) + "']");
+
+            // Détection XPath
+            if (selector.startsWith("//")
+                    || selector.startsWith("(//")
+                    || selector.startsWith("xpath=")) {
+
+                String xpath = selector.startsWith("xpath=")
+                        ? selector.substring(6)
+                        : selector;
+
+                locator = page.locator("xpath=" + xpath);
+
             } else {
-                // Par défaut CSS selector
+                // Tous les autres cas => CSS selector
                 locator = page.locator(selector);
             }
-            locator = locator.first(); // si plusieurs correspondances
-            locator.waitFor(new Locator.WaitForOptions()
-                    .setTimeout(timeoutSeconds * 1000)
-                    .setState(WaitForSelectorState.VISIBLE));
 
-            return locator;
+            locator.first().waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(timeoutSeconds * 1000)
+                            .setState(WaitForSelectorState.VISIBLE)
+            );
+
+            return locator.first();
+
         } catch (Exception e) {
-            log.error("Élément non trouvé avec le sélecteur: {}", selector, e);
-            throw e;
+            log.error("Élément non trouvé avec le sélecteur : {}", selector, e);
+            throw new RuntimeException(
+                    "Impossible de trouver l'élément : " + selector, e);
         }
     }
 
@@ -116,7 +149,6 @@ public class PlaywrightElementLibrary {
         try {
             Locator element = waitForElement(selector, timeoutSeconds);
             element.click();
-//            log.debug("Clic sur l'élément: {}", selector);
         } catch (Exception e) {
             log.error("Impossible de cliquer sur l'élément: {}", selector);
             throw e;
@@ -427,6 +459,29 @@ public class PlaywrightElementLibrary {
             return actualText.contains(expectedText);
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    // ==================== MÉTHODES PAR TITLE ====================
+
+    public Locator getByTitle(String title) {
+        return page.getByTitle(title).first();
+    }
+
+    public Locator getByTitleExact(String title) {
+        return page.getByTitle(title, new com.microsoft.playwright.Page.GetByTitleOptions().setExact(true)).first();
+    }
+
+    public void clickByTitle(String title) {
+        getByTitle(title).click();
+    }
+
+    public String getTextByTitle(String title) {
+        try {
+            return getByTitle(title).textContent().trim();
+        } catch (Exception e) {
+            log.error("Impossible de récupérer le texte de l'élément avec title: {}", title);
+            return "";
         }
     }
 
@@ -907,6 +962,21 @@ public class PlaywrightElementLibrary {
             log.error("Erreur lors de la sélection de '{}' dans '{}'", visibleText, selectSelector, e);
             throw new RuntimeException("Échec de la sélection de: " + visibleText, e);
         }
+    }
+
+    public String getPrixByNiveau(int niveau, String divGeneral, String locatorPrix) {
+        if (niveau < 1 || niveau > 6) {
+            throw new IllegalArgumentException("Le niveau doit être compris entre 1 et 6");
+        }
+
+        Locator cartesNiveaux = page.locator("div.grid.grid-cols-6 > div");
+
+        return cartesNiveaux
+                .nth(niveau - 1)
+                .locator("p.font-gotham-book")
+                .textContent()
+                .replace("/mois", "")
+                .trim();
     }
 
 }

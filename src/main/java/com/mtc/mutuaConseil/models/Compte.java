@@ -19,5 +19,6 @@ public class Compte {
     private Boolean actif;
     private String authKeyQrCode;
     private int niveau;
+    private Integer ordre;
    // private String cheminQrCode;
 }

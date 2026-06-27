@@ -170,5 +170,6 @@ CREATE TABLE info_assure_complet (
 
 
 ALTER TABLE public.compte ADD COLUMN niveau integer default 0;
+ALTER TABLE public.compte ADD COLUMN ordre integer;
 
 
