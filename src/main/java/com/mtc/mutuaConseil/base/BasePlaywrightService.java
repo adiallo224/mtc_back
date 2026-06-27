@@ -6,6 +6,7 @@ import com.microsoft.playwright.options.ScreenshotType;
 import com.microsoft.playwright.options.SelectOption;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import com.mtc.mutuaConseil.models.Tarif;
+import com.mtc.mutuaConseil.repositories.ParametreGeneralRepository;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -19,6 +20,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.nio.file.Paths;
 
+import static java.util.Objects.isNull;
+
 public abstract class BasePlaywrightService {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
@@ -30,15 +33,51 @@ public abstract class BasePlaywrightService {
     @Autowired
     private TarifService tarifService;
 
+    @Autowired
+    private ParametreGeneralRepository parametreGeneralRepository;
+
+    private BrowserType getConfiguredBrowserType() {
+        return parametreGeneralRepository.findAll().stream()
+                .findFirst()
+                .map(pg -> {
+                    String nav = pg.getNavigateurPlaywright();
+                    if (isNull(nav) || nav.isBlank()) return BrowserType.PLAYWRIGHT_CHROMIUM;
+                    try { return BrowserType.valueOf(nav); }
+                    catch (IllegalArgumentException e) { return BrowserType.PLAYWRIGHT_CHROMIUM; }
+                })
+                .orElse(BrowserType.PLAYWRIGHT_CHROMIUM);
+    }
+
     protected void initializeBrowser() {
         initializeBrowser(false);
     }
 
     protected void initializeBrowser(boolean headless) {
         playwright = Playwright.create();
-        browser = playwright.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
-                .setHeadless(headless)
-                .setArgs(java.util.List.of("--start-maximized")));
+        BrowserType browserType = getConfiguredBrowserType();
+        switch (browserType) {
+            case PLAYWRIGHT_CHROME:
+                browser = playwright.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
+                        .setHeadless(headless)
+                        .setChannel("chrome")
+                        .setArgs(java.util.List.of("--start-maximized")));
+                break;
+            case PLAYWRIGHT_EDGE:
+                browser = playwright.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
+                        .setHeadless(headless)
+                        .setChannel("msedge")
+                        .setArgs(java.util.List.of("--start-maximized")));
+                break;
+            case PLAYWRIGHT_FIREFOX:
+                browser = playwright.firefox().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
+                        .setHeadless(headless));
+                break;
+            default:
+                browser = playwright.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
+                        .setHeadless(headless)
+                        .setArgs(java.util.List.of("--start-maximized")));
+                break;
+        }
         BrowserContext context = browser.newContext(new Browser.NewContextOptions().setViewportSize(null));
         page = context.newPage();
         elementLib = new PlaywrightElementLibrary(page);

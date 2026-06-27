@@ -171,5 +171,6 @@ CREATE TABLE info_assure_complet (
 
 ALTER TABLE public.compte ADD COLUMN niveau integer default 0;
 ALTER TABLE public.compte ADD COLUMN ordre integer;
+ALTER TABLE public.parametre_general ADD COLUMN navigateur_playwright VARCHAR(50);
 
 

@@ -1,6 +1,8 @@
 package com.mtc.mutuaConseil.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -8,6 +10,7 @@ import java.time.LocalTime;
 
 @Data
 @Entity
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ParametreGeneral {
 
     @Id
@@ -24,5 +27,7 @@ public class ParametreGeneral {
     private @JsonFormat(pattern = "HH:mm:ss") LocalTime heurePurge;
 
     private int nbJours;
+
+    private String navigateurPlaywright;
 
 }
