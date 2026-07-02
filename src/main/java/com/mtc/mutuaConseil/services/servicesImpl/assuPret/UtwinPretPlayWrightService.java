@@ -37,9 +37,9 @@ public class UtwinPretPlayWrightService extends BasePlaywrightService implements
             // Navigation
             humanLikeNavigate(c.getUrlFournisseur());
 
-            elementLib.typeByXpath("//*[@id=\"username\"]", c.getUsername());
+            elementLib.humanTypeByXpath("//*[@id=\"username\"]", c.getUsername());
 
-            elementLib.typeByXpath("//*[@id=\"password\"]", c.getPassword());
+            elementLib.humanTypeByXpath("//*[@id=\"password\"]", c.getPassword());
 
             elementLib.clickByXpath("//*[@id=\"kc-login\"]");
             waitThread(12);
@@ -95,11 +95,11 @@ public class UtwinPretPlayWrightService extends BasePlaywrightService implements
             elementLib.clickByXpath("//div[@id=\"assures0\"]//app-form-radio-button[@formcontrolname=\"civilite\"]//span[contains(text(),'Madame')]");
         }
         //Nom
-        elementLib.typeByXpath("//div[@id='assures0']//input[@placeholder='ex : DUPONT']", flux.getPersonnes().get(index).getNom());
+        elementLib.humanTypeByXpath("//div[@id='assures0']//input[@placeholder='ex : DUPONT']", flux.getPersonnes().get(index).getNom());
         //Prenom
-        elementLib.typeByXpath("//div[@id='assures0']//input[@placeholder='ex : Jean-Michel']", flux.getPersonnes().get(index).getPrenom());
+        elementLib.humanTypeByXpath("//div[@id='assures0']//input[@placeholder='ex : Jean-Michel']", flux.getPersonnes().get(index).getPrenom());
         //Date naissance
-        elementLib.typeByXpath("//div[@id='assures0']//input[@placeholder='jj/mm/aaaa']", flux.getPersonnes().get(index).getDateNaissance());
+        elementLib.humanTypeByXpath("//div[@id='assures0']//input[@placeholder='jj/mm/aaaa']", flux.getPersonnes().get(index).getDateNaissance());
         // Choix statut profession
         choixStatutProfession(flux, index);
 
@@ -114,9 +114,9 @@ public class UtwinPretPlayWrightService extends BasePlaywrightService implements
         elementLib.pressEnter();
 
         //Exacte Profession
-        elementLib.typeByXpath("//input[@placeholder='Profession exacte']", flux.getPersonnes().get(index).getProfession());
+        elementLib.humanTypeByXpath("//input[@placeholder='Profession exacte']", flux.getPersonnes().get(index).getProfession());
         //Code postal
-        elementLib.typeByXpath("//input[@formcontrolname=\"codePostal\"]", flux.getPersonnes().get(index).getCodePostal());
+        elementLib.humanTypeByXpath("//input[@formcontrolname=\"codePostal\"]", flux.getPersonnes().get(index).getCodePostal());
 
         if (flux.getInfoAssureComplets().get(index).getFumeur()){
             elementLib.clickByXpath("//*[@id=\"assures0\"]/fieldset/div/app-form-container/div/div/div/div[2]/div/div/div/div[2]/div/div[1]/div[2]/switch-button/div/div");
@@ -158,11 +158,11 @@ public class UtwinPretPlayWrightService extends BasePlaywrightService implements
                 elementLib.clickByXpath("//div[@id=\"assures1\"]//app-form-radio-button[@formcontrolname=\"civilite\"]//span[contains(text(),'Madame')]");
             }
             //Nom
-            elementLib.typeByXpath("//div[@id='assures1']//input[@placeholder='ex : DUPONT']", flux.getPersonnes().get(index).getNom());
+            elementLib.humanTypeByXpath("//div[@id='assures1']//input[@placeholder='ex : DUPONT']", flux.getPersonnes().get(index).getNom());
             //Prenom
-            elementLib.typeByXpath("//div[@id='assures1']//input[@placeholder='ex : Jean-Michel']", flux.getPersonnes().get(index).getPrenom());
+            elementLib.humanTypeByXpath("//div[@id='assures1']//input[@placeholder='ex : Jean-Michel']", flux.getPersonnes().get(index).getPrenom());
             //Date naissance
-            elementLib.typeByXpath("//div[@id='assures1']//input[@placeholder='jj/mm/aaaa']", flux.getPersonnes().get(index).getDateNaissance());
+            elementLib.humanTypeByXpath("//div[@id='assures1']//input[@placeholder='jj/mm/aaaa']", flux.getPersonnes().get(index).getDateNaissance());
             //Profession
             choixStatutProfession(flux, index);
 
@@ -177,10 +177,10 @@ public class UtwinPretPlayWrightService extends BasePlaywrightService implements
             elementLib.pressEnter();
 
             //Exacte Profession
-            elementLib.typeByXpath("//div[@id='assures1']//input[@placeholder='Profession exacte']", flux.getPersonnes().get(index).getProfession());
+            elementLib.humanTypeByXpath("//div[@id='assures1']//input[@placeholder='Profession exacte']", flux.getPersonnes().get(index).getProfession());
 
             //Code postal
-            elementLib.typeByXpath("//div[@id='assures1']//input[@formcontrolname=\"codePostal\"]", flux.getPersonnes().get(index).getCodePostal());
+            elementLib.humanTypeByXpath("//div[@id='assures1']//input[@formcontrolname=\"codePostal\"]", flux.getPersonnes().get(index).getCodePostal());
 
             if (flux.getInfoAssureComplets().get(index).getFumeur()){
                 elementLib.clickByXpath("//*[@id=\"assures1\"]/fieldset/div/app-form-container/div/div/div/div[2]/div/div/div/div[2]/div/div[1]/div[2]/switch-button/div/div");
@@ -224,7 +224,7 @@ public class UtwinPretPlayWrightService extends BasePlaywrightService implements
         //Date prévisionnelle
         scrollDown(300);
 
-        elementLib.typeByXpath("//input[@formcontrolname='datePrevisionDeblocage']", flux.getPrets().get(index).getDateEffet());
+        elementLib.humanTypeByXpath("//input[@formcontrolname='datePrevisionDeblocage']", flux.getPrets().get(index).getDateEffet());
 
         //Localisation
         elementLib.clickByXpath("//app-form-dropdownlist[@formcontrolname=\"paysId\"]//div//ng-select");
@@ -237,14 +237,14 @@ public class UtwinPretPlayWrightService extends BasePlaywrightService implements
         choixTypePret(flux, index);
 
         //Taux
-        elementLib.typeByXpath("//input[@formcontrolname='taux']", flux.getPrets().get(index).getTaux());
+        elementLib.humanTypeByXpath("//input[@formcontrolname='taux']", flux.getPrets().get(index).getTaux());
         //Montant
-        elementLib.typeByXpath("//input[@formcontrolname='montantInitial']", flux.getPrets().get(index).getMontantPret());
+        elementLib.humanTypeByXpath("//input[@formcontrolname='montantInitial']", flux.getPrets().get(index).getMontantPret());
         //Durée
-        elementLib.typeByXpath("//input[@formcontrolname='dureeInitiale']", flux.getPrets().get(index).getDuree());
+        elementLib.humanTypeByXpath("//input[@formcontrolname='dureeInitiale']", flux.getPrets().get(index).getDuree());
 
         if (flux.getPrets().get(index).getDureeDiffere() != null) {
-            elementLib.typeByXpath("//input[@formcontrolname='dontDiffereInitial']", flux.getPrets().get(index).getDureeDiffere());
+            elementLib.humanTypeByXpath("//input[@formcontrolname='dontDiffereInitial']", flux.getPrets().get(index).getDureeDiffere());
         }
 
         ChoixTypeTaux(flux, index);
@@ -259,14 +259,14 @@ public class UtwinPretPlayWrightService extends BasePlaywrightService implements
             choixTypePret(flux, index);
 
             //Taux
-            elementLib.typeByXpath("//div[@id=\"pret1\"]//input[@formcontrolname='taux']", flux.getPrets().get(index).getTaux());
+            elementLib.humanTypeByXpath("//div[@id=\"pret1\"]//input[@formcontrolname='taux']", flux.getPrets().get(index).getTaux());
             //Montant
-            elementLib.typeByXpath("//div[@id=\"pret1\"]//input[@formcontrolname='montantInitial']", flux.getPrets().get(index).getMontantPret());
+            elementLib.humanTypeByXpath("//div[@id=\"pret1\"]//input[@formcontrolname='montantInitial']", flux.getPrets().get(index).getMontantPret());
             //Durée
-            elementLib.typeByXpath("//div[@id=\"pret1\"]//input[@formcontrolname='dureeInitiale']", flux.getPrets().get(index).getDuree());
+            elementLib.humanTypeByXpath("//div[@id=\"pret1\"]//input[@formcontrolname='dureeInitiale']", flux.getPrets().get(index).getDuree());
 
             if (flux.getPrets().get(index).getDureeDiffere() != null) {
-                elementLib.typeByXpath("//div[@id=\"pret1\"]//app-form-input[@label=\"Dont différé\"]//input[@formcontrolname='dontDiffereInitial']",
+                elementLib.humanTypeByXpath("//div[@id=\"pret1\"]//app-form-input[@label=\"Dont différé\"]//input[@formcontrolname='dontDiffereInitial']",
                 flux.getPrets().get(index).getDureeDiffere());
             }
             ChoixTypeTaux(flux, index);
@@ -669,7 +669,7 @@ public class UtwinPretPlayWrightService extends BasePlaywrightService implements
 
             // Attendre et remplir l'input IPP
             elementLib.waitForElementVisible(inputIPPSelector, timeoutInput);
-            elementLib.typeByXpath(inputIPPSelector, "0");
+            elementLib.humanTypeByXpath(inputIPPSelector, "0");
             elementLib.waitThread(1);
 
             // Sélecteur pour le switch button

@@ -82,14 +82,14 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
     }
 
     private void remplirContrat(FluxData flux) {
-        elementLib.typeById("DateEffetSouhaitee", dateEffet(1));
+        elementLib.humanTypeById("DateEffetSouhaitee", dateEffet(1));
     }
 
     private void remplirIdentite(FluxData flux) {
         choixCivilite(flux, 0);
         elementLib.humanTypeById("NomSouscripteur", flux.getPersonnes().getFirst().getNom());
         elementLib.humanTypeById("PrenomSouscripteur", flux.getPersonnes().getFirst().getPrenom());
-        elementLib.typeById("DateNaissanceSouscripteur", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.humanTypeById("DateNaissanceSouscripteur", flux.getPersonnes().getFirst().getDateNaissance());
         choixRegime(flux, 0);
     }
 
@@ -115,7 +115,7 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
             choixLienCiviliteBeneficiaire("//*[@id='Beneficiaire_0_Civilite-button']", "//*[contains(@id,'Beneficiaire_0_Civilite-menu')]//li", "conjoint", flux, 0);
             elementLib.humanTypeById("Beneficiaire_0_Nom", flux.getPersonnes().get(1).getNom());
             elementLib.humanTypeById("Beneficiaire_0_Prenom", flux.getPersonnes().get(1).getPrenom());
-            elementLib.typeById("Beneficiaire_0_DateNaissance", flux.getPersonnes().get(1).getDateNaissance());
+            elementLib.humanTypeById("Beneficiaire_0_DateNaissance", flux.getPersonnes().get(1).getDateNaissance());
             choixRegimeBeneficiaires("//*[@id='Beneficiaire_0_Regime-button']", "//*[contains(@id,'Beneficiaire_0_Regime-menu')]//li");
         }
         if (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty()) {
@@ -125,7 +125,7 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
             choixLienCiviliteBeneficiaire("//*[@id='Beneficiaire_1_Civilite-button']", "//*[contains(@id,'Beneficiaire_1_Civilite-menu')]//li", "enfant", flux, 0);
             elementLib.humanTypeById("Beneficiaire_1_Nom", flux.getEnfants().getFirst().getNom());
             elementLib.humanTypeById("Beneficiaire_1_Prenom", flux.getEnfants().getFirst().getPrenom());
-            elementLib.typeById("Beneficiaire_1_DateNaissance", flux.getEnfants().getFirst().getDateNaissance());
+            elementLib.humanTypeById("Beneficiaire_1_DateNaissance", flux.getEnfants().getFirst().getDateNaissance());
             choixRegimeBeneficiaires("//*[@id='Beneficiaire_1_Regime-button']", "//*[contains(@id,'Beneficiaire_1_Regime-menu')]//li");
         }
         if (flux.getEnfants().size() == 2) {
@@ -135,7 +135,7 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
             choixLienCiviliteBeneficiaire("//*[@id='Beneficiaire_2_Civilite-button']", "//*[contains(@id,'Beneficiaire_2_Civilite-menu')]//li", "enfant", flux, 1);
             elementLib.humanTypeById("Beneficiaire_2_Nom", flux.getEnfants().get(1).getNom());
             elementLib.humanTypeById("Beneficiaire_2_Prenom", flux.getEnfants().get(1).getPrenom());
-            elementLib.typeById("Beneficiaire_2_DateNaissance", flux.getEnfants().get(1).getDateNaissance());
+            elementLib.humanTypeById("Beneficiaire_2_DateNaissance", flux.getEnfants().get(1).getDateNaissance());
             choixRegimeBeneficiaires("//*[@id='Beneficiaire_2_Regime-button']", "//*[contains(@id,'Beneficiaire_2_Regime-menu')]//li");
         }
     }

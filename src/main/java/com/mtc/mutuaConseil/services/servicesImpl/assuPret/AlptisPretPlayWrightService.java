@@ -90,8 +90,8 @@ public class AlptisPretPlayWrightService extends BasePlaywrightService implement
 
     public void connexion(Compte c) {
         elementLib.clickByXpath("//div//button[@aria-label=\"Non merci\"]");
-        elementLib.typeById("username", c.getUsername());
-        elementLib.typeById("password", c.getPassword());
+        elementLib.humanTypeById("username", c.getUsername());
+        elementLib.humanTypeById("password", c.getPassword());
         clickIfExists("//*[@name=\"login\"]");
     }
 
@@ -105,27 +105,27 @@ public class AlptisPretPlayWrightService extends BasePlaywrightService implement
         }
         elementLib.selectByVisibleText2("select[id*='insured_insdGender']", "Monsieur");
         //prenom
-        elementLib.typeByXpath(".//input[contains(@id, 'insured_lastname')]", flux.getPersonnes().get(index).getPrenom());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'insured_lastname')]", flux.getPersonnes().get(index).getPrenom());
         //nom
-        elementLib.typeByXpath(".//input[contains(@id, 'insured_firstname')]", flux.getPersonnes().get(index).getNom());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'insured_firstname')]", flux.getPersonnes().get(index).getNom());
         //Date naissance
-        elementLib.typeByXpath(".//input[contains(@id, 'insured_insdDateOfBirthDt')]", flux.getPersonnes().get(index).getDateNaissance());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'insured_insdDateOfBirthDt')]", flux.getPersonnes().get(index).getDateNaissance());
         //Ville naissance
-        elementLib.typeByXpath(".//input[contains(@id, 'insured_cityOfBirth')]", flux.getPersonnes().get(index).getVille());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'insured_cityOfBirth')]", flux.getPersonnes().get(index).getVille());
         //Email
-        elementLib.typeByXpath(".//input[contains(@id, 'insured_email')]", flux.getPersonnes().get(index).getEmail());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'insured_email')]", flux.getPersonnes().get(index).getEmail());
         //Telephone
-        elementLib.typeByXpath(".//input[contains(@id, 'insured_mobilePhoneNumber')]", flux.getPersonnes().get(index).getTelephone());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'insured_mobilePhoneNumber')]", flux.getPersonnes().get(index).getTelephone());
         //adresse
-        elementLib.typeByXpath(".//input[contains(@id, 'addressline1')]", flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
-        elementLib.typeByXpath(".//input[contains(@id, 'addresscity')]", flux.getPersonnes().get(index).getVille());
-        elementLib.typeByXpath(".//input[contains(@id, 'addresszipcode')]", flux.getPersonnes().get(index).getCodePostal());
-        elementLib.typeByXpath(".//input[contains(@id, 'addresscountry')]", flux.getPersonnes().get(index).getPays());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'addressline1')]", flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'addresscity')]", flux.getPersonnes().get(index).getVille());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'addresszipcode')]", flux.getPersonnes().get(index).getCodePostal());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'addresscountry')]", flux.getPersonnes().get(index).getPays());
         waitThread(2);
         elementLib.pressEnter();
         elementLib.scrollDown(100);
         if (flux.getPersonnes().get(index).getNationalite().equalsIgnoreCase("Française")) {
-            elementLib.typeByXpath("//input[contains(@id, 'label.nationality')]", "France");
+            elementLib.humanTypeByXpath("//input[contains(@id, 'label.nationality')]", "France");
         }
         waitThread(1);
         elementLib.pressEnterOnBody();
@@ -138,7 +138,7 @@ public class AlptisPretPlayWrightService extends BasePlaywrightService implement
         }
         choixCategorieProfession(flux, index);
         //Profession exacte
-        elementLib.typeByXpath(".//input[contains(@id, 'insured_exactJob')]", flux.getPersonnes().get(index).getProfession());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'insured_exactJob')]", flux.getPersonnes().get(index).getProfession());
         //Regime social
         waitThread(3);
         choixRegime(flux, index);
@@ -182,26 +182,26 @@ public class AlptisPretPlayWrightService extends BasePlaywrightService implement
             }
 
             //Nom
-            elementLib.typeByXpath("//input[contains(@id, 'insured_lastname_1')]", flux.getPersonnes().get(index).getPrenom());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_lastname_1')]", flux.getPersonnes().get(index).getPrenom());
             //Prenom
-            elementLib.typeByXpath("//input[contains(@id, 'insured_firstname_1')]", flux.getPersonnes().get(index).getNom());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_firstname_1')]", flux.getPersonnes().get(index).getNom());
             //Date naissance
-            elementLib.typeByXpath("//input[contains(@id, 'insured_insdDateOfBirthDt_1')]", flux.getPersonnes().get(index).getDateNaissance());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_insdDateOfBirthDt_1')]", flux.getPersonnes().get(index).getDateNaissance());
             //Ville naissance
-            elementLib.typeByXpath("//input[contains(@id, 'insured_cityOfBirth_1')]", flux.getPersonnes().get(index).getVille());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_cityOfBirth_1')]", flux.getPersonnes().get(index).getVille());
             //Email
-            elementLib.typeByXpath("//input[contains(@id, 'insured_email_1')]", flux.getPersonnes().get(index).getEmail());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_email_1')]", flux.getPersonnes().get(index).getEmail());
             //Telephone
-            elementLib.typeByXpath("//input[contains(@id, 'insured_mobilePhoneNumber_1')]", flux.getPersonnes().get(index).getTelephone());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_mobilePhoneNumber_1')]", flux.getPersonnes().get(index).getTelephone());
             //adresse
-            elementLib.typeByXpath("//input[contains(@id, 'insured_address1') and contains(@id, 'addressline1')]", flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
-            elementLib.typeByXpath("//input[contains(@id, 'insured_address1') and contains(@id, 'addresscity')]", flux.getPersonnes().get(index).getVille());
-            elementLib.typeByXpath("//input[contains(@id, 'insured_address1') and contains(@id, 'addresszipcode')]", flux.getPersonnes().get(index).getCodePostal());
-            elementLib.typeByXpath("//input[contains(@id, 'insured_address1') and contains(@id, 'addresscountry')]", flux.getPersonnes().get(index).getPays());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_address1') and contains(@id, 'addressline1')]", flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_address1') and contains(@id, 'addresscity')]", flux.getPersonnes().get(index).getVille());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_address1') and contains(@id, 'addresszipcode')]", flux.getPersonnes().get(index).getCodePostal());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_address1') and contains(@id, 'addresscountry')]", flux.getPersonnes().get(index).getPays());
             waitThread(2);
             elementLib.pressEnter();
             if (flux.getPersonnes().get(index).getNationalite().equalsIgnoreCase("Française")) {
-                elementLib.typeByXpath("/html[1]/body[1]/form[1]/main[1]/form[1]/div[2]/form[1]/form[1]/form[1]/form[1]/form[1]/div[1]/div[3]/div[1]/div[2]/div[2]/form[1]/div[2]/div[4]/div[1]/div[1]/div[1]/div[1]/div[1]/input[1]", "France");
+                elementLib.humanTypeByXpath("/html[1]/body[1]/form[1]/main[1]/form[1]/div[2]/form[1]/form[1]/form[1]/form[1]/form[1]/div[1]/div[3]/div[1]/div[2]/div[2]/form[1]/div[2]/div[4]/div[1]/div[1]/div[1]/div[1]/div[1]/input[1]", "France");
             }
             waitThread(1);
             elementLib.pressEnter();
@@ -216,7 +216,7 @@ public class AlptisPretPlayWrightService extends BasePlaywrightService implement
 
             choixCategorieProfession(flux, index);
             //Profession exacte
-            elementLib.typeByXpath("//input[contains(@id, 'insured_exactJob_1')]", flux.getPersonnes().get(index).getProfession());
+            elementLib.humanTypeByXpath("//input[contains(@id, 'insured_exactJob_1')]", flux.getPersonnes().get(index).getProfession());
             //Regime social
             waitThread(2);
             choixRegime(flux, index);
@@ -257,21 +257,21 @@ public class AlptisPretPlayWrightService extends BasePlaywrightService implement
         //Type de pret
         choixTypePret(flux, index);
         //Montant
-        elementLib.typeByXpath(".//input[contains(@id, 'loan_loanAmount_0')]", flux.getPrets().get(index).getMontantPret());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_loanAmount_0')]", flux.getPrets().get(index).getMontantPret());
         //Duree
-        elementLib.typeByXpath(".//input[contains(@id, 'loan_loanDuration_0')]", flux.getPrets().get(index).getDuree());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_loanDuration_0')]", flux.getPrets().get(index).getDuree());
         //Taux
-        elementLib.typeByXpath(".//input[contains(@id, 'loan_loanRate_0')]", flux.getPrets().get(index).getTaux());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_loanRate_0')]", flux.getPrets().get(index).getTaux());
         //Date effet
-        elementLib.typeByXpath(".//input[contains(@id, 'loan_effectiveDate_0')]", flux.getPrets().get(index).getDateEffet());
+        elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_effectiveDate_0')]", flux.getPrets().get(index).getDateEffet());
         //Type de différé
         choixTypeDiffere(flux, index);
 
         if (flux.getPrets().get(index).getDiffere().equalsIgnoreCase("Partiel")) {
-            elementLib.typeByXpath(".//input[contains(@id, 'loan_loanDeferredDuration2')]", flux.getPrets().get(index).getDureeDiffere());
+            elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_loanDeferredDuration2')]", flux.getPrets().get(index).getDureeDiffere());
         }
         if (flux.getPrets().get(index).getDiffere().equalsIgnoreCase("Total")) {
-            elementLib.typeByXpath(".//input[contains(@id, 'loan_loanDeferredDuration2')]", flux.getPrets().get(index).getDureeDiffere());
+            elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_loanDeferredDuration2')]", flux.getPrets().get(index).getDureeDiffere());
         }
         //Périodicité pret
 //        WebElement dropdownPeriodicite = driver.findElement(By.xpath(".//select[contains(@id, 'loan_loanPeriodicityRefund_0')]"));
@@ -294,21 +294,21 @@ public class AlptisPretPlayWrightService extends BasePlaywrightService implement
             index = 1;
             choixTypePret(flux, index);
             //Montant
-            elementLib.typeByXpath(".//input[contains(@id, 'loan_loanAmount_1')]", flux.getPrets().get(index).getMontantPret());
+            elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_loanAmount_1')]", flux.getPrets().get(index).getMontantPret());
             //Duree
-            elementLib.typeByXpath(".//input[contains(@id, 'loan_loanDuration_1')]", flux.getPrets().get(index).getDuree());
+            elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_loanDuration_1')]", flux.getPrets().get(index).getDuree());
             //Taux
-            elementLib.typeByXpath(".//input[contains(@id, 'loan_loanRate_1')]", flux.getPrets().get(index).getTaux());
+            elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_loanRate_1')]", flux.getPrets().get(index).getTaux());
             //Date effet
-            elementLib.typeByXpath(".//input[contains(@id, 'loan_effectiveDate_1')]", flux.getPrets().get(index).getDateEffet());
+            elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_effectiveDate_1')]", flux.getPrets().get(index).getDateEffet());
             //Type de différé
             choixTypeDiffere(flux, index);
 
             if (flux.getPrets().get(index).getDiffere().equalsIgnoreCase("Partiel")) {
-                elementLib.typeByXpath((".//input[contains(@id, 'loan_loanDeferredDuration2_1')]"), flux.getPrets().get(index).getDureeDiffere());
+                elementLib.humanTypeByXpath((".//input[contains(@id, 'loan_loanDeferredDuration2_1')]"), flux.getPrets().get(index).getDureeDiffere());
             }
             if (flux.getPrets().get(index).getDiffere().equalsIgnoreCase("Total")) {
-                elementLib.typeByXpath(".//input[contains(@id, 'loan_loanDeferredDuration2_1')]", flux.getPrets().get(index).getDureeDiffere());
+                elementLib.humanTypeByXpath(".//input[contains(@id, 'loan_loanDeferredDuration2_1')]", flux.getPrets().get(index).getDureeDiffere());
             }
 //            //Périodicité pret
 //            WebElement dropdownPeriodicite1 = driver.findElement(By.xpath(".//select[contains(@id, 'loan_loanPeriodicityRefund_1')]"));

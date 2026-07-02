@@ -88,14 +88,14 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
 
     private void remplirClient(FluxData flux) {
         waitThread(1);
-        elementLib.typeByXpath("//input[@placeholder='JJ/MM/AAAA']", dateEffet(1));
+        elementLib.humanTypeByXpath("//input[@placeholder='JJ/MM/AAAA']", dateEffet(1));
         waitThread(1);
         elementLib.clickByXpath("//button[.//div[text()='Continuer']]");
 
         elementLib.clickByXpath("//input[@id='customer.isMember-1']");
         elementLib.humanTypeByXpath("//input[@name='customer.lastName']", flux.getPersonnes().getFirst().getNom());
         elementLib.humanTypeByXpath("//input[@name='customer.firstName']", flux.getPersonnes().getFirst().getPrenom());
-        elementLib.typeByXpath("//input[@name='customer.birthDate']", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.humanTypeByXpath("//input[@name='customer.birthDate']", flux.getPersonnes().getFirst().getDateNaissance());
         elementLib.humanTypeByXpath("//input[@name='customer.address.postCode']", flux.getPersonnes().getFirst().getCodePostal());
         choixProfession(flux);
         waitThread(1);
@@ -104,7 +104,7 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
             elementLib.clickByXpath("//button[.//div[text()='Ajouter un bénéficiaire']]");
             waitThread(1);
             elementLib.clickByXpath("//label[normalize-space()='Conjoint']");
-            elementLib.typeByXpath("(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]", flux.getPersonnes().get(1).getDateNaissance());
+            elementLib.humanTypeByXpath("(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]", flux.getPersonnes().get(1).getDateNaissance());
             choixRegime();
             elementLib.clickByXpath("//input[@id='beneficiaries.0.isAlsaceMoselle-1']");
         }
@@ -112,7 +112,7 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
             elementLib.clickByXpath("//button[.//div[text()='Ajouter un bénéficiaire']]");
             waitThread(1);
             elementLib.clickByXpath("//label[normalize-space()='Enfant']");
-            elementLib.typeByXpath("(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]", flux.getEnfants().getFirst().getDateNaissance());
+            elementLib.humanTypeByXpath("(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]", flux.getEnfants().getFirst().getDateNaissance());
             choixRegime();
             if (flux.getPersonnes().size() >= 2)
                 elementLib.clickByXpath("//input[@id='beneficiaries.1.isAlsaceMoselle-1']");
@@ -123,7 +123,7 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
             elementLib.clickByXpath("//button[.//div[text()='Ajouter un bénéficiaire']]");
             waitThread(1);
             elementLib.clickByXpath("//label[normalize-space()='Enfant']");
-            elementLib.typeByXpath("(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]", flux.getEnfants().get(1).getDateNaissance());
+            elementLib.humanTypeByXpath("(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]", flux.getEnfants().get(1).getDateNaissance());
             choixRegime();
             elementLib.clickByXpath("//input[@id='beneficiaries.2.isAlsaceMoselle-1']");
             scrollDown(200);

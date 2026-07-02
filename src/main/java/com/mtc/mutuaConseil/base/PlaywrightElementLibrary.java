@@ -5,10 +5,7 @@ import com.microsoft.playwright.Dialog;
 import com.microsoft.playwright.FrameLocator;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.LoadState;
-import com.microsoft.playwright.options.MouseButton;
-import com.microsoft.playwright.options.SelectOption;
-import com.microsoft.playwright.options.WaitForSelectorState;
+import com.microsoft.playwright.options.*;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,13 +13,14 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @Getter
 public class PlaywrightElementLibrary {
 
     private static final Logger log = LoggerFactory.getLogger(PlaywrightElementLibrary.class);
-
     protected Page page;
+    private final Random random = new Random();
 
     public PlaywrightElementLibrary(Page page) {
         this.page = page;
@@ -237,31 +235,6 @@ public class PlaywrightElementLibrary {
 
     // ==================== MÉTHODES DE SAISIE ====================
 
-    /**
-     * Saisir du texte dans un champ
-     */
-    public void type(String selector, String text) {
-        type(selector, text, 10);
-    }
-
-    public void type(String selector, String text, int timeoutSeconds) {
-        try {
-            Locator field = waitForElement(selector, timeoutSeconds);
-            field.clear();
-            field.fill(text);
-        } catch (Exception e) {
-            log.error("Impossible de saisir dans l'élément: {}", selector);
-            throw e;
-        }
-    }
-
-    /**
-     * Saisir par ID
-     */
-    public void typeById(String id, String text) {
-        type("#" + id, text);
-    }
-
     public void humanTypeById(String id, String text) {
         typeHumanLike("#" + id, text);
     }
@@ -274,11 +247,61 @@ public class PlaywrightElementLibrary {
         typeHumanLike("name" + name, text);
     }
 
-    /**
-     * Saisir par XPath
-     */
-    public void typeByXpath(String xpath, String text) {
-        type("xpath=" + xpath, text);
+    public void typeByLabel(String label, String text) {
+        typeByLabelElement(label, text);
+    }
+
+    public void typeByLabelElement(String label, String text) {
+        try {
+            Locator field = page.getByLabel(label, new Page.GetByLabelOptions().setExact(true));
+            field.clear();
+            field.pressSequentially(text, new Locator.PressSequentiallyOptions().setDelay(60));
+        } catch (Exception e) {
+            log.error("Impossible de saisir dans l'élément: {}{} ", label, text);
+            throw e;
+        }
+    }
+
+    public void clickByLabel(String label) {
+        clickByLabelElement(label);
+    }
+
+    public void clickByLabelElement(String label) {
+        try {
+            Locator field = page.getByLabel(label, new Page.GetByLabelOptions().setExact(true));
+            field.click();
+        } catch (Exception e) {
+            log.error("Impossible de saisir dans l'élément: {} ", label);
+            throw e;
+        }
+    }
+
+    public void clickByRole(String label) {
+        clickByRoleElement(label);
+    }
+
+    public void clickByRoleElement(String label) {
+        try {
+            Locator field = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName(label));
+            field.click();
+        } catch (Exception e) {
+            log.error("Impossible de cliquer sur l'élément: {} ", label);
+            throw e;
+        }
+    }
+
+    public void clickByTextElement(String label) {
+        clickByGetTextElement(label);
+    }
+
+    public void clickByGetTextElement(String label) {
+        try {
+            Locator field = page.getByText(label, new Page.GetByTextOptions().setExact(true));
+            field.click();
+        } catch (Exception e) {
+            log.error("Impossible de cliquer sur l'élément: {} ", label);
+            throw e;
+        }
     }
 
     /**
@@ -288,14 +311,9 @@ public class PlaywrightElementLibrary {
         Locator field = waitForElement(selector, 10);
         field.click();
         field.clear();
-
         for (char c : text.toCharArray()) {
             field.press(String.valueOf(c));
-            try {
-                Thread.sleep(50 + (long)(Math.random() * 100));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            randomWait(50, 150);
         }
     }
 
@@ -306,6 +324,75 @@ public class PlaywrightElementLibrary {
         Locator field = waitForElement(selector, 10);
         field.clear();
     }
+
+    // random wait
+    public void randomWait(int min, int max) {
+        page.waitForTimeout(min + random.nextInt(max - min));
+    }
+
+    //  HOVER HUMAIN (simple)
+    public void hover(Locator locator) {
+        locator.waitFor();
+        locator.hover();
+        randomWait(100, 300);
+    }
+
+    // ACTION COMBINÉE (clic + attente réseau)
+    public void clickAndWaitResponse(Locator locator, String urlPart) {
+        locator.waitFor();
+
+        page.waitForResponse(response ->
+                        response.url().contains(urlPart) && response.status() == 200,
+                () -> {
+                    humanClick(locator);
+                }
+        );
+    }
+
+    public void humanClick(Locator locator) {
+        locator.waitFor();
+        locator.hover();
+        randomWait(100, 300);
+        locator.click();
+        randomWait(200, 600);
+    }
+
+    // CLICK HUMAIN AVANCÉ (mouvement souris réel)
+    public void humanClickAdvanced(Locator locator) {
+        locator.waitFor();
+
+        BoundingBox box = locator.boundingBox();
+        if (box == null) return;
+
+        double targetX = box.x + box.width / 2;
+        double targetY = box.y + box.height / 2;
+
+        // position de départ aléatoire
+        double currentX = targetX - 100 + random.nextInt(200);
+        double currentY = targetY - 100 + random.nextInt(200);
+
+        // déplacement progressif
+        for (int i = 0; i < 10; i++) {
+            currentX += (targetX - currentX) / 2;
+            currentY += (targetY - currentY) / 2;
+
+            page.mouse().move(currentX, currentY);
+            page.waitForTimeout(10 + random.nextInt(20));
+        }
+
+        randomWait(100, 300);
+
+        page.mouse().click(targetX, targetY);
+
+        randomWait(200, 500);
+    }
+
+    public void scrollPage(int min, int max) {
+        int delta = min + random.nextInt(max - min);
+        page.mouse().wheel(0, delta);
+        randomWait(200, 600);
+    }
+
 
     // ==================== MÉTHODES POUR SELECT/DROPDOWN ====================
 

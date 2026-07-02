@@ -33,8 +33,8 @@ public class SimulassurPretPlayWrightService extends BasePlaywrightService imple
             // Navigation
             humanLikeNavigate(c.getUrlFournisseur());
             // CONNEXION
-            elementLib.typeById("brokerCode", c.getUsername());
-            elementLib.typeById("password", c.getPassword());
+            elementLib.humanTypeById("brokerCode", c.getUsername());
+            elementLib.humanTypeById("password", c.getPassword());
             elementLib.clickByXpath("//button[normalize-space()='Connexion']");
             elementLib.waitForPageLoad();
 
@@ -96,10 +96,10 @@ public class SimulassurPretPlayWrightService extends BasePlaywrightService imple
             elementLib.clickById("customer-1_civility-women");
         }
         // INFORMATIONS DE BASE
-        elementLib.typeById("customer-1_lastname", flux.getPersonnes().get(index).getNom());
-        elementLib.typeById("customer-1_firstname", flux.getPersonnes().get(index).getPrenom());
-        elementLib.typeById("customer-1_birthDate", flux.getPersonnes().get(index).getDateNaissance());
-        elementLib.typeById("customer-1_zipCode", flux.getPersonnes().get(index).getCodePostal());
+        elementLib.humanTypeById("customer-1_lastname", flux.getPersonnes().get(index).getNom());
+        elementLib.humanTypeById("customer-1_firstname", flux.getPersonnes().get(index).getPrenom());
+        elementLib.humanTypeById("customer-1_birthDate", flux.getPersonnes().get(index).getDateNaissance());
+        elementLib.humanTypeById("customer-1_zipCode", flux.getPersonnes().get(index).getCodePostal());
         // STATUT PROFESSIONNEL
         selectStatutProfession(flux, index);
         // CONDITIONS SPÉCIFIQUES
@@ -136,10 +136,10 @@ public class SimulassurPretPlayWrightService extends BasePlaywrightService imple
         } else {
             elementLib.clickById("customer-2_civility-women");
         }
-        elementLib.typeById("customer-2_lastname", flux.getPersonnes().get(index).getNom());
-        elementLib.typeById("customer-2_firstname", flux.getPersonnes().get(index).getPrenom());
-        elementLib.typeById("customer-2_birthDate", flux.getPersonnes().get(index).getDateNaissance());
-        elementLib.typeById("customer-2_zipCode", flux.getPersonnes().get(index).getCodePostal());
+        elementLib.humanTypeById("customer-2_lastname", flux.getPersonnes().get(index).getNom());
+        elementLib.humanTypeById("customer-2_firstname", flux.getPersonnes().get(index).getPrenom());
+        elementLib.humanTypeById("customer-2_birthDate", flux.getPersonnes().get(index).getDateNaissance());
+        elementLib.humanTypeById("customer-2_zipCode", flux.getPersonnes().get(index).getCodePostal());
 
         selectStatutProfession(flux, index);
 
@@ -168,12 +168,12 @@ public class SimulassurPretPlayWrightService extends BasePlaywrightService imple
         // TYPE DE PROJET
         selectTypeProjet(flux, 0);
         // INFORMATIONS PRÊT
-        elementLib.typeById("effectiveDate", flux.getPrets().get(index).getDateEffet());
+        elementLib.humanTypeById("effectiveDate", flux.getPrets().get(index).getDateEffet());
         choixBanque(flux);
-        elementLib.typeById("loan-1_amount", flux.getPrets().get(index).getMontantPret());
-        elementLib.typeById("loan-1_rate", flux.getPrets().get(index).getTaux());
-        elementLib.typeById("loan-1_duration", flux.getPrets().get(index).getDuree());
-        elementLib.typeById("loan-1_delay", flux.getPrets().get(index).getDiffere());
+        elementLib.humanTypeById("loan-1_amount", flux.getPrets().get(index).getMontantPret());
+        elementLib.humanTypeById("loan-1_rate", flux.getPrets().get(index).getTaux());
+        elementLib.humanTypeById("loan-1_duration", flux.getPrets().get(index).getDuree());
+        elementLib.humanTypeById("loan-1_delay", flux.getPrets().get(index).getDiffere());
         // DIFFÉRÉ
         if (!flux.getPrets().get(index).getDiffere().isEmpty() &&
                 (flux.getPrets().get(index).getDiffere().equalsIgnoreCase("Partiel") ||
@@ -192,10 +192,10 @@ public class SimulassurPretPlayWrightService extends BasePlaywrightService imple
     private void ajouterDeuxiemePret(FluxData flux) {
         int index = 1;
         elementLib.clickByXpath("//button[text()=\" Cliquez pour ajouter un prêt \"]");
-        elementLib.typeById("loan-2_amount", flux.getPrets().get(index).getMontantPret());
-        elementLib.typeById("loan-2_rate", flux.getPrets().get(index).getTaux());
-        elementLib.typeById("loan-2_duration", flux.getPrets().get(index).getDuree());
-        elementLib.typeById("loan-2_delay", flux.getPrets().get(index).getDiffere());
+        elementLib.humanTypeById("loan-2_amount", flux.getPrets().get(index).getMontantPret());
+        elementLib.humanTypeById("loan-2_rate", flux.getPrets().get(index).getTaux());
+        elementLib.humanTypeById("loan-2_duration", flux.getPrets().get(index).getDuree());
+        elementLib.humanTypeById("loan-2_delay", flux.getPrets().get(index).getDiffere());
 
         if (!flux.getPrets().get(index).getDiffere().isEmpty() &&
                 (flux.getPrets().get(index).getDiffere().equalsIgnoreCase("Partiel") ||

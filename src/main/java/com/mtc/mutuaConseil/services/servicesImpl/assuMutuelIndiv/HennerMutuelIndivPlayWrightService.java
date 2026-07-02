@@ -48,7 +48,7 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
             remplirSante();
             remplirDevisSante(flux);
             suivant();
-            waitThread(5);
+            waitThread(7);
             String cout = getElementTextByXpath("/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-pricing/div/div[5]/div[3]/div[2]/div/div[1]/div[2]");
             log.info("cout {}", cout);
             tarif.setMontant(cout);
@@ -71,7 +71,7 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
 
     private void connexion(Compte c) {
         waitThread(1);
-        clickIfExists("/html/body/app-root/henner-cookie-banner/div/ul/li[3]/button");
+        elementLib.clickByRole("TOUT ACCEPTER");
         elementLib.humanTypeById("mat-input-0", c.getUsername());
         elementLib.humanTypeById("mat-input-1", c.getPassword());
         waitThread(1);
@@ -89,25 +89,25 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
 
     private void remplirContrat(FluxData flux) {
         waitThread(1);
-        elementLib.typeByXpath("//input[@data-placeholder='Date de naissance']", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.humanTypeByXpath("//input[@data-placeholder='Date de naissance']", flux.getPersonnes().getFirst().getDateNaissance());
         waitThread(1);
-        elementLib.humanTypeByXpath("//input[@data-placeholder='Code postal']", flux.getPersonnes().getFirst().getCodePostal());
+        elementLib.typeByLabel("Code postal", flux.getPersonnes().getFirst().getCodePostal());
         waitThread(1);
-        elementLib.humanTypeByXpath("//input[@data-placeholder='Nom (facultatif)']", flux.getPersonnes().getFirst().getNom());
+        elementLib.typeByLabel("Nom (facultatif)", flux.getPersonnes().getFirst().getNom());
         waitThread(1);
-        elementLib.humanTypeByXpath("//input[@data-placeholder='Prénom (facultatif)']", flux.getPersonnes().getFirst().getPrenom());
+        elementLib.typeByLabel("Prénom (facultatif)", flux.getPersonnes().getFirst().getPrenom());
         waitThread(1);
-        elementLib.clickByXpath("//span[normalize-space()='VALIDER']");
+        elementLib.clickByRole("VALIDER");
     }
 
     private void remplirSante() {
         waitThread(1);
-        elementLib.clickByXpath("//span[normalize-space()='Santé']");
+        elementLib.clickByTextElement("Santé");
     }
 
     private void remplirDevisSante(FluxData flux) {
         waitThread(1);
-        elementLib.typeByXpath("//input[@data-placeholder=\"Date d'effet\"]", dateEffet(1));
+        elementLib.humanTypeByXpath("//input[@data-placeholder=\"Date d'effet\"]", dateEffet(1));
         choixRegime("//span[normalize-space()='Régime']");
         if (flux.getPersonnes().size() >= 2) {
             remplirConjoint(flux);
@@ -132,7 +132,7 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
     private void remplirConjoint(FluxData flux) {
         ajoutConjoint();
         waitThread(1);
-        elementLib.typeByXpath(
+        elementLib.humanTypeByXpath(
             "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input",
             flux.getPersonnes().get(1).getDateNaissance());
         choixRegime("/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span");
@@ -141,7 +141,7 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
     private void remplirEnfant(FluxData flux, String xpathDateNaissance, String xpathRegime, int index) {
         ajoutEnfant();
         waitThread(1);
-        elementLib.typeByXpath(xpathDateNaissance, flux.getEnfants().get(index).getDateNaissance());
+        elementLib.humanTypeByXpath(xpathDateNaissance, flux.getEnfants().get(index).getDateNaissance());
         choixRegime(xpathRegime);
     }
 
@@ -160,17 +160,17 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
 
     private void ajoutConjoint() {
         waitThread(1);
-        elementLib.clickByXpath("//div[normalize-space()='Ajouter un conjoint']");
+        elementLib.clickByTextElement("Ajouter un conjoint");
     }
 
     private void ajoutEnfant() {
         waitThread(1);
-        elementLib.clickByXpath("//div[normalize-space()='Ajouter un enfant']");
+        elementLib.clickByTextElement("Ajouter un enfant");
     }
 
     private void suivant() {
         waitThread(1);
-        elementLib.clickByXpath("//span[normalize-space()='TARIFER']");
+        elementLib.clickByTextElement("TARIFER");
     }
 
     private String dateEffet(int mois) {

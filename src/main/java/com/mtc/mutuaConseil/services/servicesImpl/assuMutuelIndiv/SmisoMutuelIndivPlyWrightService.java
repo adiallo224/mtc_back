@@ -41,7 +41,7 @@ public class SmisoMutuelIndivPlyWrightService extends BasePlaywrightService impl
             remplirBesoins();
             remplirProposition();
             waitThread(3);
-            String cout = getMonthlyPrice("Formule 200%");
+            String cout = obtenirCotisationParMois("Formule 200%");
             log.info("cout {}", cout);
             tarif.setMontant(cout);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
@@ -64,8 +64,8 @@ public class SmisoMutuelIndivPlyWrightService extends BasePlaywrightService impl
     private void connexion(Compte c) {
         humanLikeNavigate(c.getUrlFournisseur());
         clickIfExists("//*[@id=\"bandeauAcceptationCookies\"]/div/div[2]/a[3]");
-        elementLib.typeByXpath("//input[@name='username']", c.getUsername());
-        elementLib.typeById("password", c.getPassword());
+        elementLib.humanTypeByXpath("//input[@name='username']", c.getUsername());
+        elementLib.humanTypeById("password", c.getPassword());
         waitThread(1);
         elementLib.clickById("kc-login");
         waitThread(1);
@@ -78,27 +78,27 @@ public class SmisoMutuelIndivPlyWrightService extends BasePlaywrightService impl
 
     private void remplirBenficiaires(FluxData flux) {
         waitThread(1);
-        elementLib.typeById("postalCode", flux.getPersonnes().getFirst().getCodePostal());
-        elementLib.typeByXpath("//input[@placeholder='JJ/MM/AAAA']", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.humanTypeById("postalCode", flux.getPersonnes().getFirst().getCodePostal());
+        elementLib.humanTypeByXpath("//input[@placeholder='JJ/MM/AAAA']", flux.getPersonnes().getFirst().getDateNaissance());
         elementLib.click("//div[@id='souscripteur']//input[@id='regimeCode']");
         waitThread(1/2);
         elementLib.click("//li[@id='regimeCode-option-0']");
         if (flux.getPersonnes().size() > 1) {
             elementLib.click("span:has-text('Son conjoint')");
-            elementLib.typeByXpath("//div[@id='conjoint']//input[@placeholder='JJ/MM/AAAA']", flux.getPersonnes().get(1).getDateNaissance());
+            elementLib.humanTypeByXpath("//div[@id='conjoint']//input[@placeholder='JJ/MM/AAAA']", flux.getPersonnes().get(1).getDateNaissance());
             elementLib.click("//div[@id='conjoint']//input[@id='regimeCode']");
             waitThread(1/2);
             elementLib.click("//li[@id='regimeCode-option-0']");
         }
         if (!flux.getEnfants().getFirst().getNom().isEmpty() && !flux.getEnfants().getFirst().getNom().isBlank()) {
             elementLib.click("span:has-text('Ses enfants')");
-            elementLib.typeByXpath("//div[@id='enfant(s)']//input[@placeholder='JJ/MM/AAAA']", flux.getEnfants().getFirst().getDateNaissance());
+            elementLib.humanTypeByXpath("//div[@id='enfant(s)']//input[@placeholder='JJ/MM/AAAA']", flux.getEnfants().getFirst().getDateNaissance());
             elementLib.click("//div[@id='enfant(s)']//input[@id='regimeCode']");
             waitThread(1/2);
             elementLib.click("//li[@id='regimeCode-option-0']");
             if (flux.getEnfants().size() >= 2) {
                 elementLib.click("//button[normalize-space()='Ajouter un enfant']");
-                elementLib.typeById("//div[@id='enfant2']//input[@placeholder='JJ/MM/AAAA']", flux.getEnfants().get(1).getDateNaissance());
+                elementLib.humanTypeById("//div[@id='enfant2']//input[@placeholder='JJ/MM/AAAA']", flux.getEnfants().get(1).getDateNaissance());
                 elementLib.click("//div[@id='enfant2']//input[@id='regimeCode']");
                 waitThread(1/2);
                 elementLib.click("//li[@id='regimeCode-option-0']");
@@ -117,10 +117,10 @@ public class SmisoMutuelIndivPlyWrightService extends BasePlaywrightService impl
     private void remplirInformationsDeContact(FluxData flux) {
         waitThread(1);
         choixCivilite(flux, 0);
-        elementLib.typeById("lastname", flux.getPersonnes().getFirst().getNom());
-        elementLib.typeById("firstname", flux.getPersonnes().getFirst().getPrenom());
-        elementLib.typeByXpath("//input[@name='phone']", flux.getPersonnes().getFirst().getTelephone());
-        elementLib.typeById("email", flux.getPersonnes().getFirst().getEmail());
+        elementLib.humanTypeById("lastname", flux.getPersonnes().getFirst().getNom());
+        elementLib.humanTypeById("firstname", flux.getPersonnes().getFirst().getPrenom());
+        elementLib.humanTypeByXpath("//input[@name='phone']", flux.getPersonnes().getFirst().getTelephone());
+        elementLib.humanTypeById("email", flux.getPersonnes().getFirst().getEmail());
         elementLib.click("//button[normalize-space()='Valider']");
     }
 
@@ -134,10 +134,10 @@ public class SmisoMutuelIndivPlyWrightService extends BasePlaywrightService impl
 
             Locator card = cards.nth(i);
 
-            Locator equilibré = card.locator("button[aria-label='Equilibré']");
+            Locator equilibre = card.locator("button[aria-label='Equilibré']");
 
-            if (equilibré.count() > 0) {
-                equilibré.click();
+            if (equilibre.count() > 0) {
+                equilibre.click();
             }
         }
         elementLib.click("//button[normalize-space()='Valider']");
@@ -156,13 +156,20 @@ public class SmisoMutuelIndivPlyWrightService extends BasePlaywrightService impl
             elementLib.click("//button[normalize-space()='Madame']");
     }
 
-    private String getMonthlyPrice(String formule) {
-        Locator card = elementLib.waitForElement("div.MuiCard-root:has(p:text('" + formule + "'))", 10);
-        Locator monthlyBlock = card.locator("div").filter(
-                new Locator.FilterOptions()
-                        .setHas(page.locator("span:text('par mois')"))
+    private String obtenirCotisationParMois(String formule) {
+        return obtenirCotisationParMois(formule, 0);
+    }
+
+    private String obtenirCotisationParMois(String formule, int niveauIndex) {
+        Locator conteneurCartes = page.locator(".MuiGrid-container");
+        Locator carteFormule = conteneurCartes.locator(".MuiGrid-item",
+                new Locator.LocatorOptions().setHasText(formule)
         );
-        return monthlyBlock.locator("span").last().innerText().trim();
+        Locator elementPrixMois = carteFormule.locator(".MuiStack-root",
+                new Locator.LocatorOptions().setHasText("par mois")
+        ).locator("p.MuiTypography-root").nth(niveauIndex);
+
+        return elementPrixMois.innerText().trim().replaceAll("\\s+", " ");
     }
 
 }

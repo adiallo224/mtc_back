@@ -125,7 +125,7 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
         elementLib.clickByXpath("//label[@for='contractReplacement_false']");
 
         // Date de début du contrat (mois prochain)
-        elementLib.typeById("startDate", dateEffet(1));
+        elementLib.humanTypeById("startDate", dateEffet(1));
     }
 
     private void remplirAdherents(FluxData flux) {
@@ -148,7 +148,7 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
     private void remplirConjoint(FluxData flux) {
         if (flux.getPersonnes().size() < 2) return;
 
-        elementLib.typeById("partner-birthdate", flux.getPersonnes().get(1).getDateNaissance());
+        elementLib.humanTypeById("partner-birthdate", flux.getPersonnes().get(1).getDateNaissance());
         choixCategorieSocioPro(flux, 1);
         choixRegime(flux, 1);
     }
@@ -159,14 +159,14 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
                 || flux.getEnfants().getFirst().getNom().isEmpty()) return;
 
         ajouterEnfant();
-        elementLib.typeById("child_0_birthdate", flux.getEnfants().getFirst().getDateNaissance());
+        elementLib.humanTypeById("child_0_birthdate", flux.getEnfants().getFirst().getDateNaissance());
         waitThread(1);
 
         if (flux.getEnfants().size() >= 2
                 && flux.getEnfants().get(1).getNom() != null
                 && !flux.getEnfants().get(1).getNom().isEmpty()) {
             ajouterEnfant();
-            elementLib.typeById("child_1_birthdate", flux.getEnfants().get(1).getDateNaissance());
+            elementLib.humanTypeById("child_1_birthdate", flux.getEnfants().get(1).getDateNaissance());
             waitThread(1);
         }
     }

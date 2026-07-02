@@ -1,6 +1,7 @@
 package com.mtc.mutuaConseil.base;
 
 import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.Geolocation;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.ScreenshotType;
 import com.microsoft.playwright.options.SelectOption;
@@ -78,7 +79,18 @@ public abstract class BasePlaywrightService {
                         .setArgs(java.util.List.of("--start-maximized")));
                 break;
         }
-        BrowserContext context = browser.newContext(new Browser.NewContextOptions().setViewportSize(null));
+
+        BrowserProfile profile = FingerprintFactory.randomProfile(browserType);
+        log.info("Profil utilisé : {}", profile.name());
+
+        BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+                .setUserAgent(profile.userAgent())
+                .setLocale(profile.locale())
+                .setTimezoneId(profile.timezone())
+                .setViewportSize(profile.width(), profile.height())
+                .setGeolocation(new Geolocation(profile.latitude(), profile.longitude()))
+                .setPermissions(java.util.List.of("geolocation")));
+        context.addInitScript(FingerprintFactory.stealthScript(profile));
         page = context.newPage();
         elementLib = new PlaywrightElementLibrary(page);
     }
@@ -346,6 +358,10 @@ public abstract class BasePlaywrightService {
 
     protected void pressEnter() {
         pressKey("Enter");
+    }
+
+    protected void clickBody() {
+        page.locator("body").click();
     }
 
     protected void pressTab() {

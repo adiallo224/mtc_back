@@ -34,8 +34,8 @@ public class AfiescaPretPlayWrightService extends BasePlaywrightService implemen
             // Navigation
             humanLikeNavigate(c.getUrlFournisseur());
             // Connexion
-            elementLib.typeByXpath("//input[@name=\"username\"]", c.getUsername());
-            elementLib.typeByXpath("//input[@name=\"password\"]", c.getPassword());
+            elementLib.humanTypeByXpath("//input[@name=\"username\"]", c.getUsername());
+            elementLib.humanTypeByXpath("//input[@name=\"password\"]", c.getPassword());
             elementLib.click("//button//span[text()=\"Connexion\"]");
 
             // Gestion de l'iframe et du chat
@@ -77,7 +77,7 @@ public class AfiescaPretPlayWrightService extends BasePlaywrightService implemen
     private void remplirInformationsPersonne(FluxData flux, String source) {
         int index = 0;
 
-        elementLib.typeByXpath("//div[@id=\"critereAssure1\"]//div[contains(@class,'critere-datenaissance')]//input[@name=\"dateNaissance\"]",
+        elementLib.humanTypeByXpath("//div[@id=\"critereAssure1\"]//div[contains(@class,'critere-datenaissance')]//input[@name=\"dateNaissance\"]",
         flux.getPersonnes().get(index).getDateNaissance());
         elementLib.click("//div[@id=\"critereAssure1\"]//div[@ng-model=\"critere.Nationalite\" and contains(@class, \"ng-isolate-scope\")]");
         elementLib.click("//div[@id=\"critereAssure1\"]//div[contains(text(), 'Française')]");
@@ -107,7 +107,7 @@ public class AfiescaPretPlayWrightService extends BasePlaywrightService implemen
         if (flux.getPersonnes().size() == 2) {
             index = 1;
             elementLib.click("//div[@id=\"critereAssure2\"]//a[@id=\"critereAjouteAssure\"]//span[@translate=\"SIM_NOUVEL_ASSURE\"]");
-            elementLib.typeByXpath("//div[@id=\"critereAssure2\"]//div[contains(@class,'critere-datenaissance')]//input[@name=\"dateNaissance\"]",
+            elementLib.humanTypeByXpath("//div[@id=\"critereAssure2\"]//div[contains(@class,'critere-datenaissance')]//input[@name=\"dateNaissance\"]",
             flux.getPersonnes().get(index).getDateNaissance());
             elementLib.click("//div[@id=\"critereAssure2\"]//div[@ng-model=\"critere.Nationalite\"]");
             elementLib.click("//div[@id=\"critereAssure2\"]//div[contains(text(), 'Française')]");
@@ -146,9 +146,9 @@ public class AfiescaPretPlayWrightService extends BasePlaywrightService implemen
         elementLib.click("//div//span[@translate=\"SIM_NATURE_NOUVEAU\"]");
         typePret(flux, index);
 
-        elementLib.typeByXpath("//input[contains(@ng-model, 'pret.Montant')]",flux.getPrets().get(index).getMontantPret());
-        elementLib.typeByXpath("//input[contains(@ng-model, 'pret.Taux')]", flux.getPrets().get(index).getTaux());
-        elementLib.typeByXpath("//input[contains(@ng-model, 'pret.Duree')]", flux.getPrets().get(index).getDuree());
+        elementLib.humanTypeByXpath("//input[contains(@ng-model, 'pret.Montant')]",flux.getPrets().get(index).getMontantPret());
+        elementLib.humanTypeByXpath("//input[contains(@ng-model, 'pret.Taux')]", flux.getPrets().get(index).getTaux());
+        elementLib.humanTypeByXpath("//input[contains(@ng-model, 'pret.Duree')]", flux.getPrets().get(index).getDuree());
         scrollDown(450);
         objetPret(flux, index);
         garantiesPret1(flux, index);
@@ -159,9 +159,9 @@ public class AfiescaPretPlayWrightService extends BasePlaywrightService implemen
             elementLib.clickByXpath("//li[contains(@class, 'pret-item pret-item-new')]//span[@translate=\"GEN_NOUVEAU\"]");
             typePret(flux, index);
 
-            elementLib.typeByXpath("//input[contains(@ng-model, 'pret.Montant')]", flux.getPrets().get(index).getMontantPret());
-            elementLib.typeByXpath("//input[contains(@ng-model, 'pret.Taux')]", flux.getPrets().get(index).getTaux());
-            elementLib.typeByXpath("//input[contains(@ng-model, 'pret.Duree')]", flux.getPrets().get(index).getDuree());
+            elementLib.humanTypeByXpath("//input[contains(@ng-model, 'pret.Montant')]", flux.getPrets().get(index).getMontantPret());
+            elementLib.humanTypeByXpath("//input[contains(@ng-model, 'pret.Taux')]", flux.getPrets().get(index).getTaux());
+            elementLib.humanTypeByXpath("//input[contains(@ng-model, 'pret.Duree')]", flux.getPrets().get(index).getDuree());
 
             objetPret(flux, index);
             garantiesPret2(flux, index);
