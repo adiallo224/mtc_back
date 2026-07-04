@@ -19,15 +19,15 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class AprilMutuelIndivService extends PageElementInteraction implements LaunchedService {
+public class AprilMIService extends PageElementInteraction implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(AprilMutuelIndivService.class);
+    private final Logger log = LoggerFactory.getLogger(AprilMIService.class);
     public static WebDriver driver;
     private final String source = "AprilMutuelIndivService";
     private static Actions actions;
     private final TypeAssuranceService typeAssuranceService;
 
-    public AprilMutuelIndivService(TypeAssuranceService typeAssuranceService){
+    public AprilMIService(TypeAssuranceService typeAssuranceService){
         this.typeAssuranceService = typeAssuranceService;
     }
 

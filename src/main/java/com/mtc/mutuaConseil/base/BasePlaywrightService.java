@@ -3,6 +3,7 @@ package com.mtc.mutuaConseil.base;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Geolocation;
 import com.microsoft.playwright.options.LoadState;
+import com.microsoft.playwright.options.Position;
 import com.microsoft.playwright.options.ScreenshotType;
 import com.microsoft.playwright.options.SelectOption;
 import com.microsoft.playwright.options.WaitForSelectorState;
@@ -87,7 +88,7 @@ public abstract class BasePlaywrightService {
                 .setUserAgent(profile.userAgent())
                 .setLocale(profile.locale())
                 .setTimezoneId(profile.timezone())
-                .setViewportSize(profile.width(), profile.height())
+                .setViewportSize(null)
                 .setGeolocation(new Geolocation(profile.latitude(), profile.longitude()))
                 .setPermissions(java.util.List.of("geolocation")));
         context.addInitScript(FingerprintFactory.stealthScript(profile));
@@ -361,7 +362,7 @@ public abstract class BasePlaywrightService {
     }
 
     protected void clickBody() {
-        page.locator("body").click();
+        page.locator("body").click(new Locator.ClickOptions().setForce(true).setPosition(new Position(5, 5)));
     }
 
     protected void pressTab() {

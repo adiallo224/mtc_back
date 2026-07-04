@@ -1,5 +1,6 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
 
+import com.microsoft.playwright.options.LoadState;
 import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.models.FluxData;
@@ -18,12 +19,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 @Service
-public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService implements LaunchedService {
+public class RepamMIService extends BasePlaywrightService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(RepamMutuelIndivPlayWrightService.class);
+    private final Logger log = LoggerFactory.getLogger(RepamMIService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public RepamMutuelIndivPlayWrightService(TypeAssuranceService typeAssuranceService) {
+    public RepamMIService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
@@ -43,7 +44,8 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
             choixCookies();
             connexion(c);
             remplirClient(flux);
-            waitThread(3);
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            elementLib.randomWait(2500, 3500);
             String cout = elementLib.getPrixByNiveau(5, "div.grid.grid-cols-6 > div", "p.font-gotham-book");
             log.info("cout {}", cout);
             tarif.setMontant(cout);
@@ -69,27 +71,27 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
     }
 
     private void connexion(Compte c) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.humanTypeByXpath("//input[@name='username']", c.getUsername());
         elementLib.humanTypeByXpath("//input[@name='password']", c.getPassword());
         elementLib.clickByXpath("//button[@type='submit']");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath("//button[@type='button' and contains(@class,'nrg-button-tertiary')]");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath("//p[contains(normalize-space(), 'Santé Individuelle')]");
         elementLib.switchToNewWindow();
         this.page = elementLib.getPage();
         elementLib.clickByXpath("//button[.//div[text()='Nouvelle proposition']]");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath("//button[.//div[text()='Sélectionner cette offre']]");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath("//button[.//div[text()='Oui']]");
     }
 
     private void remplirClient(FluxData flux) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.humanTypeByXpath("//input[@placeholder='JJ/MM/AAAA']", dateEffet(1));
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath("//button[.//div[text()='Continuer']]");
 
         elementLib.clickByXpath("//input[@id='customer.isMember-1']");
@@ -98,11 +100,11 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
         elementLib.humanTypeByXpath("//input[@name='customer.birthDate']", flux.getPersonnes().getFirst().getDateNaissance());
         elementLib.humanTypeByXpath("//input[@name='customer.address.postCode']", flux.getPersonnes().getFirst().getCodePostal());
         choixProfession(flux);
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
 
         if (flux.getPersonnes().size() >= 2) {
             elementLib.clickByXpath("//button[.//div[text()='Ajouter un bénéficiaire']]");
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             elementLib.clickByXpath("//label[normalize-space()='Conjoint']");
             elementLib.humanTypeByXpath("(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]", flux.getPersonnes().get(1).getDateNaissance());
             choixRegime();
@@ -110,7 +112,7 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
         }
         if (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty()) {
             elementLib.clickByXpath("//button[.//div[text()='Ajouter un bénéficiaire']]");
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             elementLib.clickByXpath("//label[normalize-space()='Enfant']");
             elementLib.humanTypeByXpath("(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]", flux.getEnfants().getFirst().getDateNaissance());
             choixRegime();
@@ -121,7 +123,7 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
         }
         if (flux.getEnfants().size() >= 2) {
             elementLib.clickByXpath("//button[.//div[text()='Ajouter un bénéficiaire']]");
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             elementLib.clickByXpath("//label[normalize-space()='Enfant']");
             elementLib.humanTypeByXpath("(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]", flux.getEnfants().get(1).getDateNaissance());
             choixRegime();
@@ -137,7 +139,7 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
 
     private void choixProfession(FluxData flux) {
         elementLib.clickByXpath("//input[@type='hidden' and @name='customer.profession']/preceding-sibling::div[contains(@class,'-control')]");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         String profession = flux.getPersonnes().getFirst().getProfessionSpecifique();
         String option = switch (profession.toLowerCase()) {
             case "artisan"                        -> "Artisan";
@@ -158,7 +160,7 @@ public class RepamMutuelIndivPlayWrightService extends BasePlaywrightService imp
 
     private void choixRegime() {
         elementLib.clickByXpath("(//input[@type='hidden' and contains(@name,'.regime')])[last()]/preceding-sibling::div[contains(@class,'-control')]");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath("//div[@role='listbox']//div[@role='option' and .//span[normalize-space()='Régime général']]");
     }
 

@@ -1,5 +1,6 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
 
+import com.microsoft.playwright.options.LoadState;
 import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.models.FluxData;
@@ -17,12 +18,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 @Service
-public class EcaHeomieMutuelIndivPlayWrightService extends BasePlaywrightService implements LaunchedService {
+public class EcaHeomieMlService extends BasePlaywrightService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(EcaHeomieMutuelIndivPlayWrightService.class);
+    private final Logger log = LoggerFactory.getLogger(EcaHeomieMlService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public EcaHeomieMutuelIndivPlayWrightService(TypeAssuranceService typeAssuranceService) {
+    public EcaHeomieMlService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
@@ -44,7 +45,8 @@ public class EcaHeomieMutuelIndivPlayWrightService extends BasePlaywrightService
             remplirComplementaireSante(flux);
             scrollDown(350);
             suivant();
-            waitThread(5);
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            elementLib.randomWait(4000, 6000);
             String cout = elementLib.getElementTextByXpath("//*[@id='tarif_sante_OPTION_BUDGET_150_B']");
             log.info("cout {}", cout);
             tarif.setMontant(cout);
@@ -69,12 +71,12 @@ public class EcaHeomieMutuelIndivPlayWrightService extends BasePlaywrightService
         elementLib.humanTypeById("login-name", c.getUsername());
         elementLib.humanTypeById("login-password", c.getPassword());
         elementLib.clickByXpath("//form//button[@type='submit']");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
     }
 
     private void choixComplementaire() {
         elementLib.clickByXpath("//a[@href='https://partenaire.heomi.fr/nouveau-devis/particulier']");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath("//a[@href='https://partenaire.heomi.fr/particulier/presentation/SANTE']");
         scrollDown(350);
         elementLib.clickByXpath("//a[@href='https://partenaire.heomi.fr/particulier/nouveauDevis/SANTE']");
@@ -87,7 +89,7 @@ public class EcaHeomieMutuelIndivPlayWrightService extends BasePlaywrightService
 
         if (flux.getPersonnes().size() == 2) {
             elementLib.clickById("has_conjoint_sante-0");
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             elementLib.humanTypeById("dn_conjoint", flux.getPersonnes().get(1).getDateNaissance());
         }
         elementLib.humanTypeById("code_postal", flux.getPersonnes().getFirst().getCodePostal());

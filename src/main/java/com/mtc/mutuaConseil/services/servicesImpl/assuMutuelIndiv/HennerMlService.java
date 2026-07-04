@@ -1,6 +1,7 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
 
 import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.LoadState;
 import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.models.FluxData;
@@ -19,12 +20,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 @Service
-public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService implements LaunchedService {
+public class HennerMlService extends BasePlaywrightService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(HennerMutuelIndivPlayWrightService.class);
+    private final Logger log = LoggerFactory.getLogger(HennerMlService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public HennerMutuelIndivPlayWrightService(TypeAssuranceService typeAssuranceService) {
+    public HennerMlService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
@@ -48,10 +49,12 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
             remplirSante();
             remplirDevisSante(flux);
             suivant();
-            waitThread(7);
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            elementLib.randomWait(6000, 8000);
             String cout = getElementTextByXpath("/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-pricing/div/div[5]/div[3]/div[2]/div/div[1]/div[2]");
             log.info("cout {}", cout);
             tarif.setMontant(cout);
+            elementLib.randomWait(600, 2000);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
             if (screenshotBytes != null) {
                 tarif.setCaptureImg(screenshotBytes);
@@ -70,13 +73,13 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
     }
 
     private void connexion(Compte c) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByRole("TOUT ACCEPTER");
         elementLib.humanTypeById("mat-input-0", c.getUsername());
         elementLib.humanTypeById("mat-input-1", c.getPassword());
-        waitThread(1);
-        elementLib.clickByXpath("//span[normalize-space()='Se connecter']");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
+        elementLib.clickByTextElement("Se connecter");
+        elementLib.randomWait(700, 1300);
     }
 
     private void remplirCreationDevis() {
@@ -88,26 +91,28 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
     }
 
     private void remplirContrat(FluxData flux) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.humanTypeByXpath("//input[@data-placeholder='Date de naissance']", flux.getPersonnes().getFirst().getDateNaissance());
-        waitThread(1);
+        clickBody();
+        elementLib.randomWait(700, 1300);
         elementLib.typeByLabel("Code postal", flux.getPersonnes().getFirst().getCodePostal());
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.typeByLabel("Nom (facultatif)", flux.getPersonnes().getFirst().getNom());
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.typeByLabel("Prénom (facultatif)", flux.getPersonnes().getFirst().getPrenom());
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByRole("VALIDER");
     }
 
     private void remplirSante() {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByTextElement("Santé");
     }
 
     private void remplirDevisSante(FluxData flux) {
-        waitThread(1);
         elementLib.humanTypeByXpath("//input[@data-placeholder=\"Date d'effet\"]", dateEffet(1));
+        elementLib.randomWait(700, 1300);
+        clickBody();
         choixRegime("//span[normalize-space()='Régime']");
         if (flux.getPersonnes().size() >= 2) {
             remplirConjoint(flux);
@@ -131,24 +136,27 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
 
     private void remplirConjoint(FluxData flux) {
         ajoutConjoint();
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.humanTypeByXpath(
             "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input",
             flux.getPersonnes().get(1).getDateNaissance());
+        elementLib.randomWait(700, 1300);
+        clickBody();
         choixRegime("/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span");
     }
 
     private void remplirEnfant(FluxData flux, String xpathDateNaissance, String xpathRegime, int index) {
         ajoutEnfant();
-        waitThread(1);
         elementLib.humanTypeByXpath(xpathDateNaissance, flux.getEnfants().get(index).getDateNaissance());
+        elementLib.randomWait(700, 1300);
+        clickBody();
         choixRegime(xpathRegime);
     }
 
     private void choixRegime(String xpath) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath(xpath);
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         Locator options = page.locator("xpath=//div[@role='listbox']//mat-option[@role='option']");
         for (int i = 0; i < options.count(); i++) {
             if (options.nth(i).textContent().trim().equalsIgnoreCase("Régime Général")) {
@@ -159,17 +167,17 @@ public class HennerMutuelIndivPlayWrightService extends BasePlaywrightService im
     }
 
     private void ajoutConjoint() {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByTextElement("Ajouter un conjoint");
     }
 
     private void ajoutEnfant() {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByTextElement("Ajouter un enfant");
     }
 
     private void suivant() {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByTextElement("TARIFER");
     }
 

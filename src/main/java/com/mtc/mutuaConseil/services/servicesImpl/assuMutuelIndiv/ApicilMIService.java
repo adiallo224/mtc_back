@@ -6,7 +6,6 @@ import com.mtc.mutuaConseil.models.Tarif;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.InformationsPersonne;
-import com.mtc.mutuaConseil.utils.InformationsUser;
 import com.mtc.mutuaConseil.utils.PageElementInteraction;
 import com.mtc.mutuaConseil.utils.TarifUtils;
 import org.openqa.selenium.By;
@@ -22,15 +21,15 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class ApicilMutuelIndivService extends PageElementInteraction implements LaunchedService {
+public class ApicilMIService extends PageElementInteraction implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(ApicilMutuelIndivService.class);
+    private final Logger log = LoggerFactory.getLogger(ApicilMIService.class);
     public static WebDriver driver;
     private final String source = "ApicilMutuelIndivService";
     private static Actions actions;
     private final TypeAssuranceService typeAssuranceService;
 
-    public ApicilMutuelIndivService(TypeAssuranceService typeAssuranceService){
+    public ApicilMIService(TypeAssuranceService typeAssuranceService){
         this.typeAssuranceService = typeAssuranceService;
     }
 

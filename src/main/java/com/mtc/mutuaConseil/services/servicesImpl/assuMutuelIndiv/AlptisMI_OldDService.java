@@ -24,16 +24,16 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class AlptisMutuelIndivService extends BaseAutomationService implements LaunchedService {
+public class AlptisMI_OldDService extends BaseAutomationService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(AlptisMutuelIndivService.class);
+    private final Logger log = LoggerFactory.getLogger(AlptisMI_OldDService.class);
     public static WebDriver driver;
     private final String source = "AlptisMutuelIndivService";
     private JavascriptExecutor js = null;
     private static Actions actions;
     private final TypeAssuranceService typeAssuranceService;
 
-    public AlptisMutuelIndivService(TypeAssuranceService typeAssuranceService){
+    public AlptisMI_OldDService(TypeAssuranceService typeAssuranceService){
         this.typeAssuranceService = typeAssuranceService;
     }
 

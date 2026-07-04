@@ -1,6 +1,7 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
 
 import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.SelectOption;
 import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
@@ -17,11 +18,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 @Service
-public class ApiviaMutuelIndivPlayWrightService extends BasePlaywrightService implements LaunchedService {
+public class ApiviaMIService extends BasePlaywrightService implements LaunchedService {
 
     private final TypeAssuranceService typeAssuranceService;
 
-    public ApiviaMutuelIndivPlayWrightService(TypeAssuranceService typeAssuranceService) {
+    public ApiviaMIService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
@@ -43,7 +44,8 @@ public class ApiviaMutuelIndivPlayWrightService extends BasePlaywrightService im
             remplirDevoirDeConseils();
             remplirContrat(flux);
             calculer();
-            waitThread(5);
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            elementLib.randomWait(4000, 6000);
             String cout = getPrixTtcParNiveau(2);
             cout = cout.substring(0, Math.min(8, cout.length()));
             log.info("cout {}", cout);
@@ -67,27 +69,27 @@ public class ApiviaMutuelIndivPlayWrightService extends BasePlaywrightService im
 
     private void connexion(Compte c) {
         humanLikeNavigate(c.getUrlFournisseur());
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.humanTypeById("username", c.getUsername());
         elementLib.humanTypeById("password", c.getPassword());
         elementLib.clickByRole("Connexion");
-        waitThread(3);
+        elementLib.randomWait(2500, 3500);
     }
 
     private void remplirOffres() {
         elementLib.clickByTextElement("Nos offres");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
     }
 
     private void remplirTarificateur() {
         elementLib.clickByXpath("//div[@data-type='particulier individuel']");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
     }
 
     private void remplirDevoirDeConseils() {
         elementLib.clickById("tarification_recueilBesoins_0");
         elementLib.clickByXpath("//span[@class='switch-label']");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
     }
 
     private void remplirContrat(FluxData flux) {
@@ -95,9 +97,9 @@ public class ApiviaMutuelIndivPlayWrightService extends BasePlaywrightService im
         elementLib.humanTypeById("tarification_dateEffet", dateEffet(1));
         clickBody();
         choixAnneeNaissance(flux, 0);
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         choixRegime(flux, 0);
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         remplirConjoint(flux);
         remplirEnfants(flux);
         scrollDown(300);
@@ -105,7 +107,7 @@ public class ApiviaMutuelIndivPlayWrightService extends BasePlaywrightService im
     }
 
     private void remplirConjoint(FluxData flux) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         if (flux.getPersonnes().size() == 2) {
             choixAnneeNaissance(flux, 1);
             choixRegime(flux, 1);
@@ -114,13 +116,13 @@ public class ApiviaMutuelIndivPlayWrightService extends BasePlaywrightService im
 
     private void remplirEnfants(FluxData flux) {
         if (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty()) {
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             ajoutBeneficiaire();
             choixAnneeNaissanceEnfant(flux, 0);
             choixRegimeEnfant(flux, 0);
         }
         if (flux.getEnfants().size() >= 2) {
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             ajoutBeneficiaire();
             choixAnneeNaissanceEnfant(flux, 1);
             choixRegimeEnfant(flux, 1);
@@ -132,14 +134,14 @@ public class ApiviaMutuelIndivPlayWrightService extends BasePlaywrightService im
     }
 
     private void choixAnneeNaissance(FluxData flux, int index) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         String annee = extractYear(flux.getPersonnes().get(index).getDateNaissance());
         String selectId = index == 0 ? "tarification_assure_dateNaissance" : "tarification_conjoint_dateNaissance";
         selectOptionEquals(selectId, annee);
     }
 
     private void choixAnneeNaissanceEnfant(FluxData flux, int index) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         String annee = extractYear(flux.getEnfants().get(index).getDateNaissance());
         String id = index == 0
                 ? "tarification_beneficiaires_0_dateNaissance"
@@ -148,13 +150,13 @@ public class ApiviaMutuelIndivPlayWrightService extends BasePlaywrightService im
     }
 
     private void choixRegime(FluxData flux, int index) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         String selectId = index == 0 ? "tarification_assure_regime" : "tarification_conjoint_regime";
         selectOptionEquals(selectId, "Assure social");
     }
 
     private void choixRegimeEnfant(FluxData flux, int index) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         String id = index == 0
                 ? "tarification_beneficiaires_0_regime"
                 : "tarification_beneficiaires_1_regime";
@@ -162,7 +164,7 @@ public class ApiviaMutuelIndivPlayWrightService extends BasePlaywrightService im
     }
 
     private void calculer() {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickById("tarification_tarif");
     }
 

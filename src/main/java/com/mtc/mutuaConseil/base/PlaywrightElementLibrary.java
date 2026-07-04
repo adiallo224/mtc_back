@@ -28,38 +28,6 @@ public class PlaywrightElementLibrary {
 
     // ==================== MÉTHODES D'ATTENTE ====================
 
-    /**
-     * Attendre qu'un élément soit visible par sélecteur CSS
-     */
-//    public Locator waitForElement(String selector, int timeoutSeconds) {
-//        try {
-//            Locator locator;
-//            // Détection automatique du type de sélecteur
-//            if (selector.startsWith("xpath=") || selector.startsWith("//") || selector.startsWith("(//")) {
-//                // XPath
-//                locator = page.locator("xpath=" + (selector.startsWith("xpath=") ? selector.substring(6) : selector));
-//            } else if (selector.startsWith("#")) {
-//                // ID CSS
-//                locator = page.locator(selector);
-//            } else if (selector.startsWith("name=")) {
-//                // Name
-//                locator = page.locator("[name='" + selector.substring(5) + "']");
-//            } else {
-//                // Par défaut CSS selector
-//                locator = page.locator(selector);
-//            }
-//            locator = locator.first(); // si plusieurs correspondances
-//            locator.waitFor(new Locator.WaitForOptions()
-//                    .setTimeout(timeoutSeconds * 1000)
-//                    .setState(WaitForSelectorState.VISIBLE));
-//
-//            return locator;
-//        } catch (Exception e) {
-//            log.error("Élément non trouvé avec le sélecteur: {}", selector, e);
-//            throw e;
-//        }
-//    }
-
     public Locator waitForElement(String selector, int timeoutSeconds) {
         try {
             Locator locator;
@@ -93,45 +61,6 @@ public class PlaywrightElementLibrary {
             throw new RuntimeException(
                     "Impossible de trouver l'élément : " + selector, e);
         }
-    }
-
-
-    /**
-     * Attendre un élément par XPath
-     */
-    public Locator waitForElementByXpath(String xpath, int timeoutSeconds) {
-        return waitForElement("xpath=" + xpath, timeoutSeconds);
-    }
-
-    /**
-     * Attendre un élément par ID
-     */
-    public Locator waitForElementById(String id, int timeoutSeconds) {
-        return waitForElement("#" + id, timeoutSeconds);
-    }
-
-    /**
-     * Attendre un élément par classe
-     */
-    public Locator waitForElementByClass(String className, int timeoutSeconds) {
-        return waitForElement("." + className, timeoutSeconds);
-    }
-
-    /**
-     * Attendre qu'un élément contienne un texte spécifique
-     */
-    public Locator waitForElementWithText(String selector, String text, int timeoutSeconds) {
-        return waitForElement(selector + ":has-text('" + text + "')", timeoutSeconds);
-    }
-
-    /**
-     * Attendre qu'un élément soit caché
-     */
-    public void waitForElementHidden(String selector, int timeoutSeconds) {
-        page.waitForSelector(selector,
-                new Page.WaitForSelectorOptions()
-                        .setState(WaitForSelectorState.HIDDEN)
-                        .setTimeout(timeoutSeconds * 1000));
     }
 
     // ==================== MÉTHODES DE CLIC ====================
@@ -200,37 +129,6 @@ public class PlaywrightElementLibrary {
      */
     public void clickById(String id) {
         click("#" + id);
-    }
-
-    /**
-     * Cliquer par texte visible
-     */
-    public void clickByText(String text) {
-        click("text=" + text);
-    }
-
-    /**
-     * Double-clic sur un élément
-     */
-    public void doubleClick(String selector) {
-        Locator element = waitForElement(selector, 10);
-        element.dblclick();
-    }
-
-    /**
-     * Clic droit sur un élément
-     */
-    public void rightClick(String selector) {
-        Locator element = waitForElement(selector, 10);
-        element.click(new Locator.ClickOptions().setButton(MouseButton.RIGHT));
-    }
-
-    /**
-     * Cliquer sur un élément spécifique dans une liste
-     */
-    public void clickNthElement(String selector, int index) {
-        Locator element = page.locator(selector).nth(index);
-        element.click();
     }
 
     // ==================== MÉTHODES DE SAISIE ====================
@@ -325,9 +223,13 @@ public class PlaywrightElementLibrary {
         field.clear();
     }
 
-    // random wait
+    // random wait (distribution gaussienne tronquée pour imiter un temps de réaction humain)
     public void randomWait(int min, int max) {
-        page.waitForTimeout(min + random.nextInt(max - min));
+        double mean = (min + max) / 2.0;
+        double stdDev = (max - min) / 6.0;
+        int wait = (int) Math.round(mean + random.nextGaussian() * stdDev);
+        wait = Math.max(min, Math.min(max, wait));
+        page.waitForTimeout(wait);
     }
 
     //  HOVER HUMAIN (simple)
@@ -338,19 +240,17 @@ public class PlaywrightElementLibrary {
     }
 
     // ACTION COMBINÉE (clic + attente réseau)
-    public void clickAndWaitResponse(Locator locator, String urlPart) {
-        locator.waitFor();
-
+    public void clickAndWaitResponse(String selector, String urlPart) {
         page.waitForResponse(response ->
                         response.url().contains(urlPart) && response.status() == 200,
                 () -> {
-                    humanClick(locator);
+                    humanClick(selector);
                 }
         );
     }
 
-    public void humanClick(Locator locator) {
-        locator.waitFor();
+    public void humanClick(String selector) {
+        Locator locator = waitForElement(selector, 10);
         locator.hover();
         randomWait(100, 300);
         locator.click();
@@ -358,9 +258,8 @@ public class PlaywrightElementLibrary {
     }
 
     // CLICK HUMAIN AVANCÉ (mouvement souris réel)
-    public void humanClickAdvanced(Locator locator) {
-        locator.waitFor();
-
+    public void humanClickAdvanced(String selector) {
+        Locator locator = waitForElement(selector, 10);
         BoundingBox box = locator.boundingBox();
         if (box == null) return;
 
@@ -379,12 +278,9 @@ public class PlaywrightElementLibrary {
             page.mouse().move(currentX, currentY);
             page.waitForTimeout(10 + random.nextInt(20));
         }
-
         randomWait(100, 300);
-
         page.mouse().click(targetX, targetY);
-
-        randomWait(200, 500);
+      randomWait(200, 500);
     }
 
     public void scrollPage(int min, int max) {
@@ -672,14 +568,14 @@ public class PlaywrightElementLibrary {
                 Page newPage = allPages.get(allPages.size() - 1);
                 newPage.waitForLoadState(LoadState.DOMCONTENTLOADED);
                 this.page = newPage;
-                log.info("✅ Basculé vers la nouvelle fenêtre existante : {}", newPage.url());
+                log.info("Basculé vers la nouvelle fenêtre existante : {}", newPage.url());
             } else {
                 // Si aucune nouvelle page détectée, on attend un court instant
                 log.warn("⚠️ Aucune nouvelle fenêtre détectée, attente courte...");
                 Page newPage = context.waitForPage(() -> {});
                 newPage.waitForLoadState(LoadState.DOMCONTENTLOADED);
                 this.page = newPage;
-                log.info("✅ Nouvelle fenêtre détectée après attente : {}", newPage.url());
+                log.info("Nouvelle fenêtre détectée après attente : {}", newPage.url());
             }
         } catch (Exception e) {
             log.error("Erreur lors du basculement vers la nouvelle fenêtre", e);
@@ -797,29 +693,6 @@ public class PlaywrightElementLibrary {
         }
     }
 
-    /**
-     * Attendre un temps fixe
-     */
-    public void wait(int seconds) {
-        try {
-            Thread.sleep(seconds * 1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    /**
-     * Attendre de manière aléatoire (comportement humain)
-     */
-    public void waitRandom(int minSeconds, int maxSeconds) {
-        try {
-            int waitTime = minSeconds + (int)(Math.random() * (maxSeconds - minSeconds));
-            Thread.sleep(waitTime * 1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
     // ==================== MÉTHODES MANQUANTES À AJOUTER ====================
 
     /**
@@ -827,40 +700,6 @@ public class PlaywrightElementLibrary {
      */
     public void scrollDown(int pixels) {
         page.evaluate("window.scrollBy(0, " + pixels + ")");
-        wait(1); // Petite attente après le scroll
-    }
-
-    /**
-     * Faire défiler vers le haut
-     */
-    public void scrollUp(int pixels) {
-        page.evaluate("window.scrollBy(0, -" + pixels + ")");
-        wait(1);
-    }
-
-    /**
-     * Faire défiler jusqu'en bas
-     */
-    public void scrollToBottom() {
-        page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
-        wait(1);
-    }
-
-    /**
-     * Faire défiler jusqu'en haut
-     */
-    public void scrollToTop() {
-        page.evaluate("window.scrollTo(0, 0)");
-        wait(1);
-    }
-
-    /**
-     * Faire défiler jusqu'à un élément
-     */
-    public void scrollToElement(String selector) {
-        Locator element = page.locator(selector).first();
-        element.scrollIntoViewIfNeeded();
-        wait(1);
     }
 
     /**
@@ -892,7 +731,6 @@ public class PlaywrightElementLibrary {
      */
     public void waitForPageLoad() {
         page.waitForLoadState(LoadState.NETWORKIDLE);
-        wait(1);
     }
 
     // ==================== MÉTHODES UTILITAIRES SUPPLÉMENTAIRES ====================
@@ -905,22 +743,6 @@ public class PlaywrightElementLibrary {
                 new Page.WaitForSelectorOptions()
                         .setState(WaitForSelectorState.VISIBLE)
                         .setTimeout(timeoutSeconds * 1000));
-    }
-
-    /**
-     * Méthode générique pour sélectionner une option par valeur
-     * @param selector Le sélecteur CSS ou autre du select
-     * @param value La valeur de l'option à sélectionner
-     */
-    public void selectByValue1(String selector, String value) {
-        try {
-            Locator selectLocator = page.locator(selector);
-            selectLocator.selectOption(value);
-            log.info("Option sélectionnée par valeur '{}' dans le select '{}'", value, selector);
-        } catch (Exception e) {
-            log.error("Erreur lors de la sélection par valeur '{}' dans '{}'", value, selector, e);
-            throw new RuntimeException("Échec de la sélection par valeur", e);
-        }
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
 
 import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.LoadState;
 import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.models.FluxData;
@@ -19,12 +20,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 @Service
-public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightService implements LaunchedService {
+public class QuatremMIService extends BasePlaywrightService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(QuatremIndivMutuelIndivPlayWrightService.class);
+    private final Logger log = LoggerFactory.getLogger(QuatremMIService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public QuatremIndivMutuelIndivPlayWrightService(TypeAssuranceService typeAssuranceService) {
+    public QuatremMIService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
@@ -50,7 +51,8 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
             }
             scrollDown(300);
             suivant();
-            waitThread(7);
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            elementLib.randomWait(6000, 8000);
             String cout = getElementTextByXpath("//*[@id='formInfoChoixCotisation']/div/table/tbody/tr[2]/td[4]");
             log.info("cout {}", cout);
             tarif.setMontant(cout);
@@ -76,9 +78,9 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
         clickIfExists("//*[@id=\"bandeauAcceptationCookies\"]/div/div[2]/a[3]");
         elementLib.humanTypeById("login", c.getUsername());
         elementLib.humanTypeById("pwd", c.getPassword());
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickById("authentificateSubmit");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
     }
 
     private void remplirContrat(FluxData flux) {
@@ -106,11 +108,11 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
     }
 
     private void remplirBenficiaires(FluxData flux) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         if (flux.getPersonnes().size() >= 2) {
             scrollDown(200);
             ajoutSouscripteur();
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             choixLienParente("//*[@id='Beneficiaire_0_LienParente-button']", "//*[contains(@id,'Beneficiaire_0_LienParente-menu')]//li", "conjoint");
             choixLienCiviliteBeneficiaire("//*[@id='Beneficiaire_0_Civilite-button']", "//*[contains(@id,'Beneficiaire_0_Civilite-menu')]//li", "conjoint", flux, 0);
             elementLib.humanTypeById("Beneficiaire_0_Nom", flux.getPersonnes().get(1).getNom());
@@ -120,7 +122,7 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
         }
         if (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty()) {
             ajoutSouscripteur();
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             choixLienParente("//*[@id='Beneficiaire_1_LienParente-button']", "//*[contains(@id,'Beneficiaire_1_LienParente-menu')]//li", "enfant");
             choixLienCiviliteBeneficiaire("//*[@id='Beneficiaire_1_Civilite-button']", "//*[contains(@id,'Beneficiaire_1_Civilite-menu')]//li", "enfant", flux, 0);
             elementLib.humanTypeById("Beneficiaire_1_Nom", flux.getEnfants().getFirst().getNom());
@@ -130,7 +132,7 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
         }
         if (flux.getEnfants().size() == 2) {
             ajoutSouscripteur();
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             choixLienParente("//*[@id='Beneficiaire_2_LienParente-button']", "//*[contains(@id,'Beneficiaire_2_LienParente-menu')]//li", "enfant");
             choixLienCiviliteBeneficiaire("//*[@id='Beneficiaire_2_Civilite-button']", "//*[contains(@id,'Beneficiaire_2_Civilite-menu')]//li", "enfant", flux, 1);
             elementLib.humanTypeById("Beneficiaire_2_Nom", flux.getEnfants().get(1).getNom());
@@ -145,9 +147,9 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
     }
 
     private void choixLienParente(String pathDropdown, String listLi, String lien) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath(pathDropdown);
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         Locator options = page.locator("xpath=" + listLi);
         if (lien.equalsIgnoreCase("conjoint"))
             options.nth(1).click();
@@ -156,9 +158,9 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
     }
 
     private void choixLienCiviliteBeneficiaire(String pathDropdown, String listLi, String lien, FluxData flux, int indexEnfant) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.clickByXpath(pathDropdown);
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         Locator options = page.locator("xpath=" + listLi);
         if (lien.equalsIgnoreCase("conjoint")) {
             options.nth(1).click();
@@ -172,7 +174,7 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
 
     private void choixRegimeBeneficiaires(String pathDropdown, String listLi) {
         elementLib.clickByXpath(pathDropdown);
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         page.locator("xpath=" + listLi).nth(1).click();
     }
 
@@ -181,19 +183,19 @@ public class QuatremIndivMutuelIndivPlayWrightService extends BasePlaywrightServ
     }
 
     private void choixRegime(FluxData flux, int index) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         if (index == 0) {
             elementLib.clickByXpath("//*[@id=\"RegimeSouscripteur-button\"]");
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             page.locator("xpath=//*[contains(@id,'RegimeSouscripteur-menu')]//li").nth(1).click();
         }
     }
 
     private void choixCivilite(FluxData flux, int index) {
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         if (index == 0) {
             elementLib.clickByXpath("//*[@id='CiviliteSouscripteur-button']");
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
             Locator options = page.locator("xpath=//*[contains(@id,'CiviliteSouscripteur-menu')]//li");
             String civilite = flux.getPersonnes().get(index).getCivilite();
             if (civilite.equalsIgnoreCase("Monsieur") || civilite.equalsIgnoreCase("M"))

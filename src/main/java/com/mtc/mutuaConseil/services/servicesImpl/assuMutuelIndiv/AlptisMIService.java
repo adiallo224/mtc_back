@@ -1,5 +1,6 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
 
+import com.microsoft.playwright.options.LoadState;
 import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.models.FluxData;
@@ -18,12 +19,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 @Service
-public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService implements LaunchedService {
+public class AlptisMIService extends BasePlaywrightService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(AlptisMutuelIndivPlayWrightService.class);
+    private final Logger log = LoggerFactory.getLogger(AlptisMIService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public AlptisMutuelIndivPlayWrightService(TypeAssuranceService typeAssuranceService) {
+    public AlptisMIService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
@@ -52,11 +53,10 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
             remplirConjoint(flux);
             remplirEnfant(flux);
             recherche();
-
             // Attendre les résultats
             scrollDown(500);
-            waitThread(1);
-
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            elementLib.randomWait(700, 1300);
             String cout = elementLib.getElementTextByXpath(
                     "//section[contains(@class,'pc-results__recommendations')][1]" +
                     "//div[@class='pc-offer-mobile__infos']//div[@class='pc-offer-price']" +
@@ -64,13 +64,11 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
             );
             log.info("cout {}", cout);
             tarif.setMontant(cout);
-
             String screenshotPath = captureScreenshot(tarif.getNom(), false, tarif);
-            tarif.setExecution(true);
             if (screenshotPath != null) {
                 tarif.setCaptureImg(screenshotPath);
             }
-
+            tarif.setExecution(true);
         } catch (Exception e) {
             log.error("An error occurred", e);
             tarif.setErreur(e.getMessage());
@@ -85,10 +83,10 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
 
     private void connexion(Compte c) {
         // Fermer le bandeau cookie (Axeptio)
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         clickIfExists("#axeptio_btn_dismiss");
         elementLib.humanTypeById("username", c.getUsername());
-        waitThread(2);
+        elementLib.randomWait(1500, 2500);
         elementLib.humanTypeById("password", c.getPassword());
         clickIfExists("[name='login']");
     }
@@ -96,12 +94,12 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
     private void navigation() {
         // Ouvrir la section Santé individuelle
         elementLib.clickByXpath("//span[text()='Santé individuelle']");
-        waitThread(2);
+        elementLib.randomWait(1500, 2500);
         // "Accéder au comparateur" ouvre un nouvel onglet → on y bascule
         elementLib.clickByXpath("//span[normalize-space()='Accéder au comparateur']");
         elementLib.switchToNewWindow();
         this.page = elementLib.getPage(); // synchronise la référence pour captureScreenshot / scrollDown
-        waitThread(2);
+        elementLib.randomWait(1500, 2500);
     }
 
     private void remplirContrat(FluxData flux) {
@@ -141,7 +139,7 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
         elementLib.humanTypeById("birthdate", flux.getPersonnes().getFirst().getDateNaissance());
         choixCategorieSocioPro(flux, 0);
         choixRegime(flux, 0);
-        waitThread(2);
+        elementLib.randomWait(1500, 2500);
         elementLib.humanTypeById("postalCode", flux.getPersonnes().get(0).getCodePostal());
     }
 
@@ -160,14 +158,14 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
 
         ajouterEnfant();
         elementLib.humanTypeById("child_0_birthdate", flux.getEnfants().getFirst().getDateNaissance());
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
 
         if (flux.getEnfants().size() >= 2
                 && flux.getEnfants().get(1).getNom() != null
                 && !flux.getEnfants().get(1).getNom().isEmpty()) {
             ajouterEnfant();
             elementLib.humanTypeById("child_1_birthdate", flux.getEnfants().get(1).getDateNaissance());
-            waitThread(1);
+            elementLib.randomWait(700, 1300);
         }
     }
 
@@ -177,7 +175,7 @@ public class AlptisMutuelIndivPlayWrightService extends BasePlaywrightService im
     }
 
     private void recherche() {
-        waitThread(2);
+        elementLib.randomWait(1500, 2500);
         elementLib.clickByXpath("//button[normalize-space(text())='Découvrir les offres']");
     }
 

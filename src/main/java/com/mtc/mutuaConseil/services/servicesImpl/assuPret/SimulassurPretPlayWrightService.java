@@ -234,7 +234,7 @@ public class SimulassurPretPlayWrightService extends BasePlaywrightService imple
                     break;
                 default:
                     elementLib.clickById(selectId);
-                    page.waitForTimeout(300);
+                    elementLib.randomWait(200, 400);
                     elementLib.click("option:has-text('" + profession + "')");
             }
         } catch (Exception e) {
@@ -256,7 +256,7 @@ public class SimulassurPretPlayWrightService extends BasePlaywrightService imple
                     break;
                 default:
                     elementLib.clickById(selectId);
-                    page.waitForTimeout(300);
+                    elementLib.randomWait(200, 400);
                     elementLib.click("option:has-text('" + typeProjet + "')");
             }
         } catch (Exception e) {

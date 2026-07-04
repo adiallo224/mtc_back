@@ -7,18 +7,25 @@ import com.mtc.mutuaConseil.models.Tarif;
 import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
 import com.mtc.mutuaConseil.services.FluxDataService;
 import com.mtc.mutuaConseil.services.servicesImpl.TarifFournisseurService;
+import com.mtc.mutuaConseil.services.servicesImpl.TarifService;
 import com.mtc.mutuaConseil.services.servicesImpl.assuPret.*;
 import com.mtc.mutuaConseil.services.servicesImpl.parametrage.CompteService;
 import com.mtc.mutuaConseil.utils.mapper.MapperFlux;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +37,7 @@ public class TarifController {
     @Autowired private CompteService compteService;
     @Autowired private TarifFournisseurService tarifFournisseurService;
     @Autowired private FluxDataService fluxDataService;
+    @Autowired private TarifService tarifService;
     @Autowired private ApiviaService apiviaService;
     @Autowired private AfiescaService afiescaService;
     @Autowired  private AlptisService alptisService;
@@ -78,7 +86,28 @@ public class TarifController {
             } else if (fluxData.getTypeAssurance().getAssuAuto()) {
                 fluxDataService.saveFluxData(fluxData, 4, true);
             }
-            FluxData lastFluxData = fluxDataService.getTarifsWithBase64(fluxDataService.getTarifsWithBase64(fluxData));
+            FluxData lastFluxData = fluxDataService.getLastFluxData();
         return ResponseEntity.ok(lastFluxData.getTarifs());
+    }
+
+    /**
+     * Sert la capture d'écran d'un tarif à la demande, plutôt que de l'embarquer
+     * en base64 dans /getTarifs (payload qui devenait trop gros avec plusieurs fournisseurs).
+     * @param id
+     * @return
+     */
+    @GetMapping("/tarifs/{id}/image")
+    public ResponseEntity<byte[]> getTarifImage(@PathVariable Long id) {
+        Tarif tarif = tarifService.findTarifById(id);
+        String path = tarif.getCaptureImgPath() != null ? tarif.getCaptureImgPath() : tarif.getCaptureImgErreurPath();
+        if (path == null) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            byte[] imageBytes = Files.readAllBytes(Path.of(path));
+            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(imageBytes);
+        } catch (IOException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

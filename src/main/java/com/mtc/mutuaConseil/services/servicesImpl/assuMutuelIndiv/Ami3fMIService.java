@@ -1,6 +1,7 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
 
 import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.SelectOption;
 import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
@@ -15,11 +16,11 @@ import org.springframework.stereotype.Service;
 
 
 @Service
-public class AMI3FMutuelIndivPlayWrightService extends BasePlaywrightService implements LaunchedService {
+public class Ami3fMIService extends BasePlaywrightService implements LaunchedService {
 
     private final TypeAssuranceService typeAssuranceService;
 
-    public AMI3FMutuelIndivPlayWrightService(TypeAssuranceService typeAssuranceService) {
+    public Ami3fMIService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
@@ -38,7 +39,8 @@ public class AMI3FMutuelIndivPlayWrightService extends BasePlaywrightService imp
             connexion(c);
             choixTarification();
             remplirComplementaireSante(flux);
-            waitThread(7);
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            elementLib.randomWait(6000, 8000);
             String cout = getPrixTtcParFormule("Formule F2");
             log.info("cout {}", cout);
             tarif.setMontant(cout);
@@ -63,17 +65,17 @@ public class AMI3FMutuelIndivPlayWrightService extends BasePlaywrightService imp
         humanLikeNavigate(c.getUrlFournisseur());
         elementLib.humanTypeByXpath("//input[@name='login']", c.getUsername());
         elementLib.humanTypeByXpath("//input[@name='password']", c.getPassword());
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
         elementLib.click("//button[@type='submit']");
-        waitThread(1);
+        elementLib.randomWait(700, 1300);
     }
 
     private void choixTarification() {
-        waitThread(2);
+        elementLib.randomWait(1500, 2500);
         elementLib.click("//*[@id='navmenu-tarif']");
         elementLib.click("//span[normalize-space()='Complémentaire Santé']");
         page.evaluate("window.scrollBy(0, 450)");
-        waitThread(2);
+        elementLib.randomWait(1500, 2500);
         elementLib.click("//span[normalize-space()='ACCÉDER A LA TARIFICATION']");
     }
 
@@ -108,9 +110,9 @@ public class AMI3FMutuelIndivPlayWrightService extends BasePlaywrightService imp
             elementLib.clickById("radio_ppe_famille_assure_2_false");
 
             if (flux.getEnfants().getFirst().getNom() != null) {
-                waitThread(1);
+                elementLib.randomWait(700, 1300);
                 elementLib.clickById("btn-add-enfant");
-                waitThread(1);
+                elementLib.randomWait(700, 1300);
                 choixSexeEnfant(flux, 0);
                 elementLib.humanTypeById("nom_enfant_1", flux.getEnfants().getFirst().getNom());
                 elementLib.humanTypeById("prenom_enfant_1", flux.getEnfants().getFirst().getPrenom());
@@ -140,7 +142,7 @@ public class AMI3FMutuelIndivPlayWrightService extends BasePlaywrightService imp
     }
 
     private void adresseRisques(FluxData flux, int index) {
-        waitThread(2);
+        elementLib.randomWait(1500, 2500);
         elementLib.humanTypeById("r_adresse_1", flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
         elementLib.humanTypeById("r_code_postal", flux.getPersonnes().get(index).getCodePostal());
         choixVille1(flux, index);
