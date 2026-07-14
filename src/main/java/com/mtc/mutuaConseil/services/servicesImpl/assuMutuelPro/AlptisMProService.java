@@ -1,8 +1,6 @@
-package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
+package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelPro;
 
 import com.microsoft.playwright.Locator;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
 import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
@@ -24,22 +22,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class AlptisMIService extends BasePlaywrightService implements LaunchedService {
+public class AlptisMProService extends BasePlaywrightService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(AlptisMIService.class);
+    private final Logger log = LoggerFactory.getLogger(AlptisMProService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public AlptisMIService(TypeAssuranceService typeAssuranceService) {
+    public AlptisMProService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
-        log.info("Début de traitement -- Alptis_Mutuel_Indiv (Playwright)");
-        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);
+        log.info("Début de traitement -- Alptis_Mutuel_Pro (Playwright)");
+        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 3L);
         tarif.setNom(c.getNomFournisseur());
         TypeAssurance typeAssurance = new TypeAssurance();
-        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_INDIV);
+        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_PRO);
         tarif.setTypeAssurance(typeAssurance);
 
         try {
@@ -55,10 +53,8 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
             // Attendre les résultats
             scrollDown(500);
             page.waitForLoadState(LoadState.NETWORKIDLE);
-            elementLib.randomWait(4000, 6000);
-            voirPlus(2);
+            elementLib.randomWait(700, 1300);
             List<String> couts = getPrixTtcParFormule(c.getNiveau());
-            log.info("couts (formules) {}", couts);
             tarif.setMontant(couts);
             String screenshotPath = captureScreenshot(tarif.getNom(), false, tarif);
             if (screenshotPath != null) {
@@ -77,22 +73,9 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
         return tarif;
     }
 
-    private void voirPlus(int nbr) {
-        Locator voirPlus = page.getByRole(
-                AriaRole.BUTTON,
-                new Page.GetByRoleOptions().setName("Voir plus d'offres")
-        );
-
-        if (voirPlus.count() > 0 && voirPlus.first().isVisible()) {
-            for (int i=0; i<nbr; i++) {
-                 voirPlus.first().click();
-                 elementLib.randomWait(4000, 7000);
-            }
-        }
-    }
-
     private void connexion(Compte c) {
-        elementLib.randomWait(2500, 4500);
+        // Fermer le bandeau cookie (Axeptio)
+        elementLib.randomWait(700, 1300);
         clickIfExists("#axeptio_btn_dismiss");
         elementLib.humanTypeById("username", c.getUsername());
         elementLib.randomWait(1500, 2500);
@@ -101,11 +84,13 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
     }
 
     private void navigation() {
+        // Ouvrir la section Santé individuelle
         elementLib.clickByXpath("//span[text()='Santé individuelle']");
         elementLib.randomWait(1500, 2500);
+        // "Accéder au comparateur" ouvre un nouvel onglet → on y bascule
         elementLib.clickByXpath("//span[normalize-space()='Accéder au comparateur']");
         elementLib.switchToNewWindow();
-        this.page = elementLib.getPage();
+        this.page = elementLib.getPage(); // synchronise la référence pour captureScreenshot / scrollDown
         elementLib.randomWait(1500, 2500);
     }
 
@@ -114,8 +99,8 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
                 && flux.getEnfants().getFirst().getNom() != null
                 && !flux.getEnfants().getFirst().getNom().isEmpty();
         boolean aConjoint = flux.getPersonnes().size() >= 2;
-        elementLib.randomWait(1500, 2500);
 
+        // Sélectionner qui on assure (label for = ID de l'input radio)
         if (aConjoint && aEnfants) {
             elementLib.clickByXpath("//label[@for='who_me_partner_children']");
         } else if (aConjoint) {
@@ -125,28 +110,26 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
         } else {
             elementLib.clickByXpath("//label[@for='who_me']");
         }
-
+        // Pas de remplacement d'un contrat chez un autre assureur
         elementLib.clickByXpath("//label[@for='contractReplacement_false']");
-
+        // Date de début du contrat (mois prochain)
         elementLib.humanTypeById("startDate", dateEffet(1));
     }
 
     private void remplirAdherents(FluxData flux) {
         String civilite = flux.getPersonnes().getFirst().getCivilite();
-        elementLib.randomWait(1500, 2500);
         if (civilite.equalsIgnoreCase("M") || civilite.equalsIgnoreCase("Monsieur")) {
             elementLib.clickByXpath("//label[@for='insured_title_monsieur']");
         } else {
             elementLib.clickByXpath("//label[@for='insured_title_madame']");
         }
-
         elementLib.humanTypeById("insured_lastname", flux.getPersonnes().getFirst().getNom());
         elementLib.humanTypeById("insured_firstname", flux.getPersonnes().getFirst().getPrenom());
         elementLib.humanTypeById("birthdate", flux.getPersonnes().getFirst().getDateNaissance());
         choixCategorieSocioPro(flux, 0);
         choixRegime(flux, 0);
         elementLib.randomWait(1500, 2500);
-        elementLib.humanTypeById("postalCode", flux.getPersonnes().get(0).getCodePostal());
+        elementLib.humanTypeById("postalCode", flux.getPersonnes().getFirst().getCodePostal());
     }
 
     private void remplirConjoint(FluxData flux) {
@@ -164,18 +147,19 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
 
         ajouterEnfant();
         elementLib.humanTypeById("child_0_birthdate", flux.getEnfants().getFirst().getDateNaissance());
-        elementLib.randomWait(1500, 2500);
+        elementLib.randomWait(700, 1300);
 
         if (flux.getEnfants().size() >= 2
                 && flux.getEnfants().get(1).getNom() != null
                 && !flux.getEnfants().get(1).getNom().isEmpty()) {
             ajouterEnfant();
             elementLib.humanTypeById("child_1_birthdate", flux.getEnfants().get(1).getDateNaissance());
+            elementLib.randomWait(700, 1300);
         }
     }
 
     private void ajouterEnfant() {
-        elementLib.randomWait(1500, 2500);
+        // Bouton "+" du compteur d'enfants
         elementLib.clickByXpath("//*[@id='children_count']/button[2]");
     }
 
@@ -212,6 +196,7 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
 
     private void choixRegime(FluxData flux, int index) {
         String selectId = (index == 0) ? "insured_regime" : "partner_regime";
+        // Valeur par défaut : Sécurité Sociale
         elementLib.selectByLabel("#" + selectId, "Sécurité Sociale");
     }
 
@@ -225,20 +210,20 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
         String profession = flux.getPersonnes().getFirst().getProfessionSpecifique();
         if (type.equalsIgnoreCase("Pro")) {
             return profession.equalsIgnoreCase("Chef d'entreprise")
-                || profession.equalsIgnoreCase("Artisan")
-                || profession.equalsIgnoreCase("Agriculteur")
-                || profession.equalsIgnoreCase("Commerçant")
-                || profession.equalsIgnoreCase("Profession libérale")
-                || profession.equalsIgnoreCase("Profession libérale médicale")
-                || profession.equalsIgnoreCase("Profession libérale paramédicale");
+                    || profession.equalsIgnoreCase("Artisan")
+                    || profession.equalsIgnoreCase("Agriculteur")
+                    || profession.equalsIgnoreCase("Commerçant")
+                    || profession.equalsIgnoreCase("Profession libérale")
+                    || profession.equalsIgnoreCase("Profession libérale médicale")
+                    || profession.equalsIgnoreCase("Profession libérale paramédicale");
         }
         return profession.equalsIgnoreCase("Salarié cadre")
-            || profession.equalsIgnoreCase("Salarié non cadre : employé")
-            || profession.equalsIgnoreCase("Ouvrier")
-            || profession.equalsIgnoreCase("Fonctionnaire classe a")
-            || profession.equalsIgnoreCase("Fonctionnaire hors classe a")
-            || profession.equalsIgnoreCase("Intermittent")
-            || profession.equalsIgnoreCase("Intérimaire");
+                || profession.equalsIgnoreCase("Salarié non cadre : employé")
+                || profession.equalsIgnoreCase("Ouvrier")
+                || profession.equalsIgnoreCase("Fonctionnaire classe a")
+                || profession.equalsIgnoreCase("Fonctionnaire hors classe a")
+                || profession.equalsIgnoreCase("Intermittent")
+                || profession.equalsIgnoreCase("Intérimaire");
     }
 
     private List<String> getPrixTtcParFormule(int formule) {
@@ -257,4 +242,5 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
         }
         return prix;
     }
+
 }

@@ -137,6 +137,10 @@ public class PlaywrightElementLibrary {
         typeHumanLike("#" + id, text);
     }
 
+    public void typeById(String id, String text) {
+        typeNormal("#" + id, text);
+    }
+
     public void humanTypeByXpath(String xpath, String text) {
         typeHumanLike("xpath=" + xpath, text);
     }
@@ -213,6 +217,13 @@ public class PlaywrightElementLibrary {
             field.press(String.valueOf(c));
             randomWait(50, 150);
         }
+    }
+
+    public void typeNormal(String selector, String text) {
+        Locator field = waitForElement(selector, 10);
+        field.click();
+        field.clear();
+        field.fill(text);
     }
 
     /**
@@ -715,6 +726,21 @@ public class PlaywrightElementLibrary {
     }
 
     /**
+     * Obtenir le texte de tous les éléments correspondant à un XPath (ex: plusieurs formules/offres)
+     */
+    public List<String> getElementsTextByXpath(String xpath) {
+        List<String> textes = new ArrayList<>();
+        try {
+            for (Locator locator : page.locator("xpath=" + xpath).all()) {
+                textes.add(locator.textContent().trim());
+            }
+        } catch (Exception e) {
+            log.error("Impossible de récupérer les textes des éléments XPath: {}", xpath);
+        }
+        return textes;
+    }
+
+    /**
      * Obtenir le texte d'un élément par sélecteur CSS
      */
     public String getElementText(String selector) {
@@ -871,21 +897,6 @@ public class PlaywrightElementLibrary {
             log.error("Erreur lors de la sélection de '{}' dans '{}'", visibleText, selectSelector, e);
             throw new RuntimeException("Échec de la sélection de: " + visibleText, e);
         }
-    }
-
-    public String getPrixByNiveau(int niveau, String divGeneral, String locatorPrix) {
-        if (niveau < 1 || niveau > 6) {
-            throw new IllegalArgumentException("Le niveau doit être compris entre 1 et 6");
-        }
-
-        Locator cartesNiveaux = page.locator("div.grid.grid-cols-6 > div");
-
-        return cartesNiveaux
-                .nth(niveau - 1)
-                .locator("p.font-gotham-book")
-                .textContent()
-                .replace("/mois", "")
-                .trim();
     }
 
 }

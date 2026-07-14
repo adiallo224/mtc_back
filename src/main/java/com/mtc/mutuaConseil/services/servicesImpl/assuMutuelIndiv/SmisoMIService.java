@@ -13,6 +13,10 @@ import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
+
 @Service
 public class SmisoMIService extends BasePlaywrightService implements LaunchedService {
 
@@ -43,9 +47,8 @@ public class SmisoMIService extends BasePlaywrightService implements LaunchedSer
             remplirProposition();
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(1000, 3000);
-            String cout = obtenirCotisationParMois("Formule 200%");
-            log.info("cout {}", cout);
-            tarif.setMontant(cout);
+            List<String> couts = getPrixParNiveau(c.getNiveau());
+            tarif.setMontant(couts);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
             if (screenshotBytes != null) {
                 tarif.setCaptureImg(screenshotBytes);
@@ -68,9 +71,9 @@ public class SmisoMIService extends BasePlaywrightService implements LaunchedSer
         clickIfExists("//*[@id=\"bandeauAcceptationCookies\"]/div/div[2]/a[3]");
         elementLib.humanTypeByXpath("//input[@name='username']", c.getUsername());
         elementLib.humanTypeById("password", c.getPassword());
-        elementLib.randomWait(300, 1000);
+        elementLib.randomWait(600, 1300);
         elementLib.clickById("kc-login");
-        elementLib.randomWait(300, 1000);
+        elementLib.randomWait(600, 1300);
     }
 
     private void nouveauProjet() {
@@ -79,30 +82,30 @@ public class SmisoMIService extends BasePlaywrightService implements LaunchedSer
     }
 
     private void remplirBenficiaires(FluxData flux) {
-        elementLib.randomWait(200, 1000);
+        elementLib.randomWait(600, 1300);
         elementLib.humanTypeById("postalCode", flux.getPersonnes().getFirst().getCodePostal());
         elementLib.humanTypeByXpath("//input[@placeholder='JJ/MM/AAAA']", flux.getPersonnes().getFirst().getDateNaissance());
         elementLib.humanClick("//div[@id='souscripteur']//input[@id='regimeCode']");
-        elementLib.randomWait(200, 1000);
+        elementLib.randomWait(600, 1300);
         elementLib.humanClick("//li[@id='regimeCode-option-0']");
         if (flux.getPersonnes().size() > 1) {
             elementLib.humanClick("span:has-text('Son conjoint')");
             elementLib.humanTypeByXpath("//div[@id='conjoint']//input[@placeholder='JJ/MM/AAAA']", flux.getPersonnes().get(1).getDateNaissance());
             elementLib.humanClick("//div[@id='conjoint']//input[@id='regimeCode']");
-            elementLib.randomWait(200, 1000);
+            elementLib.randomWait(600, 1300);
             elementLib.humanClick("//li[@id='regimeCode-option-0']");
         }
         if (!flux.getEnfants().getFirst().getNom().isEmpty() && !flux.getEnfants().getFirst().getNom().isBlank()) {
             elementLib.humanClick("span:has-text('Ses enfants')");
             elementLib.humanTypeByXpath("//div[@id='enfant(s)']//input[@placeholder='JJ/MM/AAAA']", flux.getEnfants().getFirst().getDateNaissance());
             elementLib.humanClick("//div[@id='enfant(s)']//input[@id='regimeCode']");
-            elementLib.randomWait(200, 1000);
+            elementLib.randomWait(600, 1300);
             elementLib.humanClick("//li[@id='regimeCode-option-0']");
             if (flux.getEnfants().size() >= 2) {
                 elementLib.humanClick("//button[normalize-space()='Ajouter un enfant']");
                 elementLib.humanTypeById("//div[@id='enfant2']//input[@placeholder='JJ/MM/AAAA']", flux.getEnfants().get(1).getDateNaissance());
                 elementLib.humanClick("//div[@id='enfant2']//input[@id='regimeCode']");
-                elementLib.randomWait(200, 1000);
+                elementLib.randomWait(600, 1300);
                 elementLib.humanClick("//li[@id='regimeCode-option-0']");
             }
         }
@@ -111,13 +114,13 @@ public class SmisoMIService extends BasePlaywrightService implements LaunchedSer
     }
 
     private void remplirCouverture() {
-        elementLib.randomWait(200, 1000);
+        elementLib.randomWait(600, 1300);
         elementLib.clickByXpath("//h3[normalize-space()='Génération 100% Nous']");
         elementLib.humanClick("//button[normalize-space()='Créer un devis']");
     }
 
     private void remplirInformationsDeContact(FluxData flux) {
-        elementLib.randomWait(200, 1000);
+        elementLib.randomWait(600, 1300);
         choixCivilite(flux, 0);
         elementLib.humanTypeById("lastname", flux.getPersonnes().getFirst().getNom());
         elementLib.humanTypeById("firstname", flux.getPersonnes().getFirst().getPrenom());
@@ -127,52 +130,50 @@ public class SmisoMIService extends BasePlaywrightService implements LaunchedSer
     }
 
     private void remplirBesoins() {
-        elementLib.randomWait(200, 1000);
+        elementLib.randomWait(600, 1300);
         Locator cards = page.locator("div.MuiCard-root");
-
         int count = cards.count();
-
         for (int i = 0; i < count; i++) {
-
-            Locator card = cards.nth(i);
-
-            Locator equilibre = card.locator("button[aria-label='Equilibré']");
-
-            if (equilibre.count() > 0) {
-                elementLib.randomWait(200, 1000);
-                equilibre.click();
-            }
+             Locator card = cards.nth(i);
+             Locator equilibre = card.locator("button[aria-label='Equilibré']");
+             if (equilibre.count() > 0) {
+                 elementLib.randomWait(200, 1000);
+                 equilibre.click();
+             }
         }
         elementLib.humanClick("//button[normalize-space()='Valider']");
     }
 
     private void remplirProposition() {
-        waitThread(1);
+        elementLib.randomWait(600, 1300);
         elementLib.humanClick("//p[normalize-space()='Ajouter une solution']");
     }
 
     private void choixCivilite(FluxData flux, int index) {
-        waitThread(1);
+        elementLib.randomWait(600, 1300);
         if (flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Monsieur") || flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("M"))
             elementLib.humanClick("//button[normalize-space()='Monsieur']");
         if (flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Madame") || flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Mme"))
             elementLib.humanClick("//button[normalize-space()='Madame']");
     }
 
-    private String obtenirCotisationParMois(String formule) {
-        return obtenirCotisationParMois(formule, 0);
-    }
+    private List<String> getPrixParNiveau(int niveau) {
+        Locator cartes = page.locator("div.MuiCard-root")
+                .filter(new Locator.FilterOptions()
+                        .setHasText(Pattern.compile("Formule \\d+%")));
+        List<String> prix = new ArrayList<>();
 
-    private String obtenirCotisationParMois(String formule, int niveauIndex) {
-        Locator conteneurCartes = page.locator(".MuiGrid-container");
-        Locator carteFormule = conteneurCartes.locator(".MuiGrid-item",
-                new Locator.LocatorOptions().setHasText(formule)
-        );
-        Locator elementPrixMois = carteFormule.locator(".MuiStack-root",
-                new Locator.LocatorOptions().setHasText("par mois")
-        ).locator("p.MuiTypography-root").nth(niveauIndex);
+        for (int i = niveau; i < cartes.count(); i++) {
+            String montant = cartes
+                    .nth(i)
+                    .locator("code span")
+                    .first()
+                    .innerText()
+                    .trim();
 
-        return elementPrixMois.innerText().trim().replaceAll("\\s+", " ");
+            prix.add(montant + " €");
+        }
+      return prix;
     }
 
 }

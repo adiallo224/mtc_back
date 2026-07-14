@@ -5,6 +5,7 @@ import com.mtc.mutuaConseil.repositories.FluxDataRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,5 +38,14 @@ public class FluxDataController {
         return fluxDataRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteFluxData(@PathVariable Long id) {
+        if (!fluxDataRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        fluxDataRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

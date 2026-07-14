@@ -1,4 +1,4 @@
-package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
+package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelPro;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.options.LoadState;
@@ -11,29 +11,40 @@ import com.mtc.mutuaConseil.models.TypeAssurance;
 import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
+import com.mtc.mutuaConseil.utils.InformationsPersonne;
+import com.mtc.mutuaConseil.utils.InformationsUser;
+import com.mtc.mutuaConseil.utils.PageElementInteraction;
 import com.mtc.mutuaConseil.utils.TarifUtils;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.Select;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-
 @Service
-public class Ami3fMIService extends BasePlaywrightService implements LaunchedService {
+public class Ami3fMProService extends BasePlaywrightService implements LaunchedService {
 
+    private final Logger log = LoggerFactory.getLogger(Ami3fMProService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public Ami3fMIService(TypeAssuranceService typeAssuranceService) {
+    public Ami3fMProService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
-        log.info("Début de traitement -- AMI3F_Mutuel_Indiv (Playwright)");
+        log.info("Début de traitement -- AMI3F_Mutuel_Pro (Playwright)");
 
-        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);
+        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 3L);
         tarif.setNom(c.getNomFournisseur());
         TypeAssurance typeAssurance = new TypeAssurance();
-        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_INDIV);
+        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_PRO);
         tarif.setTypeAssurance(typeAssurance);
 
         try {
@@ -43,8 +54,9 @@ public class Ami3fMIService extends BasePlaywrightService implements LaunchedSer
             remplirComplementaireSante(flux);
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(6000, 8000);
-            List<String> couts = getPrixTtcParFormule(c.getNiveau());
-            tarif.setMontant(couts);
+            String cout = getPrixTtcParFormule("Formule F2");
+            log.info("cout {}", cout);
+            tarif.setMontant(cout);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
             if (screenshotBytes != null) {
                 tarif.setCaptureImg(screenshotBytes);
@@ -231,21 +243,20 @@ public class Ami3fMIService extends BasePlaywrightService implements LaunchedSer
         }
     }
 
-    private List<String> getPrixTtcParFormule(int idFormule) {
-        StringBuilder selecteur = new StringBuilder();
+    private String getPrixTtcParFormule(String formule) {
+        Locator row = page.locator("tr.formule-disponible").filter(
+                new Locator.FilterOptions().setHas(page.locator("td[data-sort-val='libelle']").filter(
+                        new Locator.FilterOptions().setHasText(formule)
+                ))
+        );
 
-        for (int i = idFormule; i <= 7; i++) {
-            if (!selecteur.isEmpty()) {
-                selecteur.append(", ");
-            }
-            selecteur.append(String.format("tr.formule-disponible[data-id='%d'] td.ttc span", i));
+        if (row.count() > 0) {
+            return row.locator("td.ttc span").innerText().trim();
         }
 
-        return page.locator(selecteur.toString())
-                .allInnerTexts()
-                .stream()
-                .map(String::trim)
-                .toList();
+        return null;
     }
+
+
 
 }

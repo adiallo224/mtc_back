@@ -1,4 +1,4 @@
-package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
+package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelPro;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.options.LoadState;
@@ -23,24 +23,26 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Service
-public class QuatremMIService extends BasePlaywrightService implements LaunchedService {
+import static java.util.Objects.nonNull;
 
-    private final Logger log = LoggerFactory.getLogger(QuatremMIService.class);
+@Service
+public class QuatremMProService extends BasePlaywrightService implements LaunchedService {
+
+    private final Logger log = LoggerFactory.getLogger(QuatremMProService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public QuatremMIService(TypeAssuranceService typeAssuranceService) {
+    public QuatremMProService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
-        log.info("Début de traitement -- QuatremIndiv_Mutuel_Indiv (Playwright)");
+        log.info("Début de traitement -- Quatrem_Mutuel_Pro (Playwright)");
 
-        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);
+        Tarif tarif = TarifUtils.createDefaultTarif(c,typeAssuranceService, 3L);
         tarif.setNom(c.getNomFournisseur());
         TypeAssurance typeAssurance = new TypeAssurance();
-        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_INDIV);
+        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_PRO);
         tarif.setTypeAssurance(typeAssurance);
 
         try {
@@ -60,7 +62,7 @@ public class QuatremMIService extends BasePlaywrightService implements LaunchedS
             List<String> couts = getPrixParFormule(c.getNiveau());
             tarif.setMontant(couts);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
-            if (screenshotBytes != null) {
+            if (nonNull(screenshotBytes)) {
                 tarif.setCaptureImg(screenshotBytes);
             }
             tarif.setExecution(true);
@@ -76,31 +78,12 @@ public class QuatremMIService extends BasePlaywrightService implements LaunchedS
         return tarif;
     }
 
-    private List<String> getPrixParFormule(int niveau) {
-        List<String> prix = new ArrayList<>();
-
-        Locator cellules = page.locator("tr.prix.prixSansOption td[class*='formule_']");
-        int count = cellules.count();
-
-        for (int i = niveau-1; i < count; i++) {
-            Locator cellule = cellules.nth(i);
-            Matcher matcher = Pattern.compile("formule_(\\d+)").matcher(cellule.getAttribute("class"));
-            if (matcher.find() && Integer.parseInt(matcher.group(1)) >= niveau) {
-                prix.add(cellule.locator(".modelChampNote")
-                        .innerText()
-                        .replace("EUR", "€")
-                        .trim());
-            }
-        }
-        return prix;
-    }
-
     private void connexion(Compte c) {
         humanLikeNavigate(c.getUrlFournisseur());
         clickIfExists("//*[@id=\"bandeauAcceptationCookies\"]/div/div[2]/a[3]");
         elementLib.humanTypeById("login", c.getUsername());
         elementLib.humanTypeById("pwd", c.getPassword());
-        elementLib.randomWait(3000, 5000);
+        elementLib.randomWait(700, 1300);
         elementLib.clickById("authentificateSubmit");
         elementLib.randomWait(700, 1300);
     }
@@ -231,5 +214,33 @@ public class QuatremMIService extends BasePlaywrightService implements LaunchedS
         return LocalDate.now()
                 .plus(mois, ChronoUnit.MONTHS)
                 .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
+    public String getPrixByNiveau(int niveau) {
+        Locator ligneCotisation = page.locator("tr.prix.prixSansOption");
+
+        return ligneCotisation
+                .locator("td.formule_" + niveau + " span.modelChampNote")
+                .textContent()
+                .trim();
+    }
+
+    private List<String> getPrixParFormule(int niveau) {
+        List<String> prix = new ArrayList<>();
+
+        Locator cellules = page.locator("tr.prix.prixSansOption td[class*='formule_']");
+        int count = cellules.count();
+
+        for (int i = niveau-1; i < count; i++) {
+            Locator cellule = cellules.nth(i);
+            Matcher matcher = Pattern.compile("formule_(\\d+)").matcher(cellule.getAttribute("class"));
+            if (matcher.find() && Integer.parseInt(matcher.group(1)) >= niveau) {
+                prix.add(cellule.locator(".modelChampNote")
+                        .innerText()
+                        .replace("EUR", "€")
+                        .trim());
+            }
+        }
+        return prix;
     }
 }

@@ -39,6 +39,7 @@ CREATE TABLE personne (
    statut_profession VARCHAR(255),
    profession_specifique VARCHAR(255),
    profession VARCHAR(255),
+   auto_entrepreneur BOOLEAN DEFAULT FALSE,
    flux_data_id BIGINT NOT NULL,
    FOREIGN KEY (flux_data_id) REFERENCES flux_data(id)
 );
@@ -102,7 +103,7 @@ CREATE TABLE info_assure_complet (
 CREATE TABLE tarif (
    id SERIAL PRIMARY KEY,
    nom VARCHAR(255),
-   montant VARCHAR(255),
+   montant JSONB,
    type_assurance_id BIGINT,
    execution BOOLEAN,
    erreur TEXT,
@@ -172,5 +173,6 @@ CREATE TABLE info_assure_complet (
 ALTER TABLE public.compte ADD COLUMN niveau integer default 0;
 ALTER TABLE public.compte ADD COLUMN ordre integer;
 ALTER TABLE public.parametre_general ADD COLUMN navigateur_playwright VARCHAR(50);
+ALTER TABLE public.personne ADD COLUMN auto_entrepreneur BOOLEAN DEFAULT FALSE;
 
 

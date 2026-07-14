@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Service
 public class EcaHeomieMlService extends BasePlaywrightService implements LaunchedService {
@@ -49,7 +50,7 @@ public class EcaHeomieMlService extends BasePlaywrightService implements Launche
             elementLib.randomWait(4000, 6000);
             String cout = elementLib.getElementTextByXpath("//*[@id='tarif_sante_OPTION_BUDGET_150_B']");
             log.info("cout {}", cout);
-            tarif.setMontant(cout);
+            tarif.setMontant(List.of(cout));
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
             if (screenshotBytes != null) {
                 tarif.setCaptureImg(screenshotBytes);

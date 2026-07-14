@@ -29,6 +29,7 @@ public class Personne {
     private String statutProfession;
     private String professionSpecifique;
     private String profession;
+    private Boolean autoEntrepreneur;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "flux_data_id", nullable = false)
     @JsonBackReference

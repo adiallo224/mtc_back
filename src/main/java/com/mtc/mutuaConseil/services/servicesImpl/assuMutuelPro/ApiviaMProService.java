@@ -1,4 +1,4 @@
-package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
+package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelPro;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.options.LoadState;
@@ -12,29 +12,31 @@ import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Service
-public class ApiviaMIService extends BasePlaywrightService implements LaunchedService {
+public class ApiviaMProService extends BasePlaywrightService implements LaunchedService {
 
+    private final Logger log = LoggerFactory.getLogger(ApiviaMProService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public ApiviaMIService(TypeAssuranceService typeAssuranceService) {
+    public ApiviaMProService(TypeAssuranceService typeAssuranceService) {
         this.typeAssuranceService = typeAssuranceService;
     }
 
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
-        log.info("Début de traitement -- Apivia_Mutuel_Indiv (Playwright)");
+        log.info("Début de traitement -- Apivia_Mutuel_Pro (Playwright)");
 
-        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);
+        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 3L);
         tarif.setNom(c.getNomFournisseur());
         TypeAssurance typeAssurance = new TypeAssurance();
-        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_INDIV);
+        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_PRO);
         tarif.setTypeAssurance(typeAssurance);
 
         try {
@@ -47,8 +49,10 @@ public class ApiviaMIService extends BasePlaywrightService implements LaunchedSe
             calculer();
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(4000, 6000);
-            List<String> couts = getPrixTtcParNiveau(c.getNiveau());
-            tarif.setMontant(couts);
+            String cout = getPrixTtcParNiveau(2);
+            cout = cout.substring(0, Math.min(8, cout.length()));
+            log.info("cout {}", cout);
+            tarif.setMontant(cout);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
             if (screenshotBytes != null) {
                 tarif.setCaptureImg(screenshotBytes);
@@ -204,25 +208,13 @@ public class ApiviaMIService extends BasePlaywrightService implements LaunchedSe
         return parts.length == 3 ? parts[2] : null;
     }
 
-    private List<String> getPrixTtcParNiveau(int niveau) {
-        StringBuilder selecteur = new StringBuilder();
-        for (int i = niveau; i <= 5; i++) {
-            if (!selecteur.isEmpty()) {
-                selecteur.append(", ");
-            }
-            selecteur.append(String.format(
-                    "tr[data-tarificateur--sante--sante-individuelle-apivia--tarification--tarifs-target='tarifsContainer'] " +
-                            "td[data-niveau='Niveau %d'] .formule_prix", i
-            ));
-        }
-
-        return page.locator(selecteur.toString())
-        .allInnerTexts()
-                .stream()
-                .map(text -> text
-        .replace("/mois", "")
-                        .trim()
-                        .replaceAll("\\s+", " "))
-        .toList();
+    private String getPrixTtcParNiveau(int niveau) {
+        String selecteur = String.format(
+                "tr[data-tarificateur--sante--sante-individuelle-apivia--tarification--tarifs-target='tarifsContainer'] " +
+                        "td[data-niveau='Niveau %d'] .formule_prix",
+                niveau
+        );
+        Locator elementPrix = page.locator(selecteur);
+        return elementPrix.innerText().trim().replaceAll("\\s+", " ");
     }
 }

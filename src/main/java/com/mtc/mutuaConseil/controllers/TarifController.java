@@ -29,6 +29,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.isNull;
+
 @RestController
 @RequestMapping("/search")
 public class TarifController {
@@ -100,7 +102,7 @@ public class TarifController {
     public ResponseEntity<byte[]> getTarifImage(@PathVariable Long id) {
         Tarif tarif = tarifService.findTarifById(id);
         String path = tarif.getCaptureImgPath() != null ? tarif.getCaptureImgPath() : tarif.getCaptureImgErreurPath();
-        if (path == null) {
+        if (isNull(path)) {
             return ResponseEntity.notFound().build();
         }
         try {

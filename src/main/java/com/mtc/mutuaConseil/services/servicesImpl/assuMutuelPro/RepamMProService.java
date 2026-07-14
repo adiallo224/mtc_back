@@ -1,4 +1,5 @@
-package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
+package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelPro;
+
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.options.LoadState;
@@ -11,6 +12,9 @@ import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.interactions.Actions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,25 +25,28 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
-@Service
-public class RepamMIService extends BasePlaywrightService implements LaunchedService {
+import static java.util.Objects.nonNull;
 
-    private final Logger log = LoggerFactory.getLogger(RepamMIService.class);
+@Service
+public class RepamMProService extends BasePlaywrightService implements LaunchedService {
+
+    private final Logger log = LoggerFactory.getLogger(RepamMProService.class);
     private final TypeAssuranceService typeAssuranceService;
 
-    public RepamMIService(TypeAssuranceService typeAssuranceService) {
+    public RepamMProService(TypeAssuranceService typeAssuranceService){
         this.typeAssuranceService = typeAssuranceService;
     }
 
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
-        log.info("Début de traitement -- Repam_Mutuel_Indiv (Playwright)");
+        log.info("Début de traitement -- Repam_Mutuel_Pro (Playwright)");
 
-        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);
+        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 3L);
         tarif.setNom(c.getNomFournisseur());
         TypeAssurance typeAssurance = new TypeAssurance();
-        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_INDIV);
+        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_PRO);
         tarif.setTypeAssurance(typeAssurance);
+
         try {
             initializeBrowser(false);
             humanLikeNavigate(c.getUrlFournisseur());
@@ -51,7 +58,7 @@ public class RepamMIService extends BasePlaywrightService implements LaunchedSer
             List<String> couts = getPrixTtcParNiveau(c.getNiveau());
             tarif.setMontant(couts);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
-            if (screenshotBytes != null) {
+            if (nonNull(screenshotBytes)) {
                 tarif.setCaptureImg(screenshotBytes);
             }
             tarif.setExecution(true);
@@ -95,6 +102,7 @@ public class RepamMIService extends BasePlaywrightService implements LaunchedSer
         elementLib.humanTypeByXpath("//input[@placeholder='JJ/MM/AAAA']", dateEffet(1));
         elementLib.randomWait(700, 1300);
         elementLib.clickByXpath("//button[.//div[text()='Continuer']]");
+
         elementLib.clickByXpath("//input[@id='customer.isMember-1']");
         elementLib.humanTypeByXpath("//input[@name='customer.lastName']", flux.getPersonnes().getFirst().getNom());
         elementLib.humanTypeByXpath("//input[@name='customer.firstName']", flux.getPersonnes().getFirst().getPrenom());
@@ -143,20 +151,18 @@ public class RepamMIService extends BasePlaywrightService implements LaunchedSer
         elementLib.randomWait(700, 1300);
         String profession = flux.getPersonnes().getFirst().getProfessionSpecifique();
         String option = switch (profession.toLowerCase()) {
-            case "artisan"                        -> "Artisan";
-            case "chef d'entreprise"              -> "Chef d'entreprise";
-            case "agriculteur"                    -> "Exploitant Agricole";
-            case "salarié cadre"                  -> "Cadre";
-            case "commerçant"                     -> "Commerçant";
-            case "salarié non cadre : employé"    -> "Cadre et employé de la fonction publique";
-            case "ouvrier"                        -> "Ouvrier";
-            default                               -> null;
+            case "artisan"                                                      -> "Artisan";
+            case "chef d'entreprise"                                           -> "Chef d'entreprise";
+            case "commerçant"                                                  -> "Commerçant";
+            case "agriculteur"                                                 -> "Exploitant Agricole";
+            case "profession libérale médicale", "profession libérale paramédicale" -> "Profession Libérale de santé";
+            case "profession libérale"                                         -> "Profession Libérale Non Réglementée";
+            default                                                            -> "Autre";
         };
-        if (option != null) {
-            elementLib.clickByXpath("//div[@role='listbox']//div[@role='option' and .//span[normalize-space()='" + option + "']]");
-        } else {
-            log.warn("Profession non reconnue : '{}'", profession);
+        if ("Autre".equals(option) && !profession.equalsIgnoreCase("autre")) {
+            log.warn("Profession '{}' non prise en charge par ce produit TNS, sélection de 'Autre'", profession);
         }
+        elementLib.clickByXpath("//div[@role='listbox']//div[@role='option' and .//span[normalize-space()='" + option + "']]");
     }
 
     private void choixRegime() {
@@ -167,7 +173,7 @@ public class RepamMIService extends BasePlaywrightService implements LaunchedSer
 
     private void choixOffre() {
         page.locator("div.shadow-md.rounded-lg")
-                .filter(new Locator.FilterOptions().setHas(page.locator("p:text-is('Santé Particulier')")))
+                .filter(new Locator.FilterOptions().setHas(page.locator("p:text-is('Santé Professionnel')")))
                 .locator("button")
                 .filter(new Locator.FilterOptions().setHasText("Sélectionner cette offre"))
                 .click();
@@ -204,11 +210,9 @@ public class RepamMIService extends BasePlaywrightService implements LaunchedSer
                     .replace("/mois", "")
                     .replace("\u00A0", " ")
                     .trim();
-
             prix.add(texte);
         }
 
         return prix;
     }
-
 }
