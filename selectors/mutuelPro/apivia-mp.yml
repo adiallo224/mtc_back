@@ -1,0 +1,41 @@
+# Sélecteurs pour Apivia - Mutuelle Pro (assuMutuelPro/ApiviaMProService)
+# Même site/parcours que la mutuelle individuelle (cf. selectors/mutuelIndiv/apivia-mi.yml) --
+# NB: le code source clique bien sur le tarificateur "particulier individuel" même en Pro (comportement
+# d'origine préservé tel quel, ce n'est pas une erreur introduite par ce refactor).
+
+connexion:
+  username_id: username
+  password_id: password
+  bouton_connexion_label: Connexion
+
+navigation:
+  nos_offres_text: "Nos offres"
+  particulier_individuel_xpath: "//div[@data-type='particulier individuel']"
+
+devoir_conseil:
+  checkbox_id: tarification_recueilBesoins_0
+  switch_label_xpath: "//span[@class='switch-label']"
+
+contrat:
+  code_postal_id: tarification_codePostal
+  date_effet_id: tarification_dateEffet
+  vitamin3_xpath: "//div//label[normalize-space()='Vitamin3']"
+  assure_date_naissance_id: tarification_assure_dateNaissance
+  assure_regime_id: tarification_assure_regime
+  conjoint_date_naissance_id: tarification_conjoint_dateNaissance
+  conjoint_regime_id: tarification_conjoint_regime
+  regime_valeur: "Assure social"
+
+beneficiaire:
+  ajouter_label: "Ajouter un bénéficiaire"
+  enfant0_date_naissance_id: tarification_beneficiaires_0_dateNaissance
+  enfant0_regime_id: tarification_beneficiaires_0_regime
+  enfant1_date_naissance_id: tarification_beneficiaires_1_dateNaissance
+  enfant1_regime_id: tarification_beneficiaires_1_regime
+
+calcul:
+  bouton_id: tarification_tarif
+
+resultats:
+  # %d est remplacé par le numéro de niveau dans le code
+  prix_selector_template: "tr[data-tarificateur--sante--sante-individuelle-apivia--tarification--tarifs-target='tarifsContainer'] td[data-niveau='Niveau %d'] .formule_prix"

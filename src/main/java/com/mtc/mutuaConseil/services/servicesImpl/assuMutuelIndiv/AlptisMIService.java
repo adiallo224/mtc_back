@@ -10,6 +10,7 @@ import com.mtc.mutuaConseil.models.FluxData;
 import com.mtc.mutuaConseil.models.Tarif;
 import com.mtc.mutuaConseil.models.TypeAssurance;
 import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
@@ -26,11 +27,26 @@ import java.util.List;
 @Service
 public class AlptisMIService extends BasePlaywrightService implements LaunchedService {
 
+    private static final String PROVIDER = "mutuelIndiv/alptis-mi";
+
     private final Logger log = LoggerFactory.getLogger(AlptisMIService.class);
     private final TypeAssuranceService typeAssuranceService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
 
-    public AlptisMIService(TypeAssuranceService typeAssuranceService) {
+    public AlptisMIService(TypeAssuranceService typeAssuranceService, SelectorStore selectors) {
         this.typeAssuranceService = typeAssuranceService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
     }
 
     @Override
@@ -45,18 +61,19 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
         try {
             initializeBrowser(false);
             humanLikeNavigate(c.getUrlFournisseur());
-            connexion(c);
-            navigation();
-            remplirContrat(flux);
-            remplirAdherents(flux);
-            remplirConjoint(flux);
-            remplirEnfant(flux);
-            recherche();
+            step("connexion", () -> connexion(c));
+            step("navigation", this::navigation);
+            step("contrat", () -> remplirContrat(flux));
+            step("adherents", () -> remplirAdherents(flux));
+            step("conjoint", () -> remplirConjoint(flux));
+            step("enfant", () -> remplirEnfant(flux));
+            step("recherche", this::recherche);
             // Attendre les résultats
             scrollDown(500);
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(4000, 6000);
-            voirPlus(2);
+            step("voir_plus", () -> voirPlus(2));
+            currentStep = "lecture_resultats";
             List<String> couts = getPrixTtcParFormule(c.getNiveau());
             log.info("couts (formules) {}", couts);
             tarif.setMontant(couts);
@@ -66,11 +83,11 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
             }
             tarif.setExecution(true);
         } catch (Exception e) {
-            log.error("An error occurred", e);
+            log.error("Échec à l'étape '{}'", currentStep, e);
             tarif.setErreur(e.getMessage());
             String screenshotPath = captureScreenshot(tarif.getNom(), true, tarif);
             tarif.setCaptureImgErreur(screenshotPath);
-            tarif.setEtape("");
+            tarif.setEtape(currentStep);
         } finally {
             cleanup();
         }
@@ -80,7 +97,7 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
     private void voirPlus(int nbr) {
         Locator voirPlus = page.getByRole(
                 AriaRole.BUTTON,
-                new Page.GetByRoleOptions().setName("Voir plus d'offres")
+                new Page.GetByRoleOptions().setName(sel("recherche.voir_plus_label"))
         );
 
         if (voirPlus.count() > 0 && voirPlus.first().isVisible()) {
@@ -93,17 +110,17 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
 
     private void connexion(Compte c) {
         elementLib.randomWait(2500, 4500);
-        clickIfExists("#axeptio_btn_dismiss");
-        elementLib.humanTypeById("username", c.getUsername());
+        clickIfExists("#" + sel("connexion.cookie_dismiss_id"));
+        elementLib.humanTypeById(sel("connexion.username_id"), c.getUsername());
         elementLib.randomWait(1500, 2500);
-        elementLib.humanTypeById("password", c.getPassword());
-        clickIfExists("[name='login']");
+        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
+        clickIfExists(sel("connexion.login_button_selector"));
     }
 
     private void navigation() {
-        elementLib.clickByXpath("//span[text()='Santé individuelle']");
+        elementLib.clickByXpath(sel("navigation.sante_individuelle_xpath"));
         elementLib.randomWait(1500, 2500);
-        elementLib.clickByXpath("//span[normalize-space()='Accéder au comparateur']");
+        elementLib.clickByXpath(sel("navigation.acceder_comparateur_xpath"));
         elementLib.switchToNewWindow();
         this.page = elementLib.getPage();
         elementLib.randomWait(1500, 2500);
@@ -117,42 +134,42 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
         elementLib.randomWait(1500, 2500);
 
         if (aConjoint && aEnfants) {
-            elementLib.clickByXpath("//label[@for='who_me_partner_children']");
+            elementLib.clickByXpath(sel("contrat.who_me_partner_children_xpath"));
         } else if (aConjoint) {
-            elementLib.clickByXpath("//label[@for='who_me_partner']");
+            elementLib.clickByXpath(sel("contrat.who_me_partner_xpath"));
         } else if (aEnfants) {
-            elementLib.clickByXpath("//label[@for='who_me_children']");
+            elementLib.clickByXpath(sel("contrat.who_me_children_xpath"));
         } else {
-            elementLib.clickByXpath("//label[@for='who_me']");
+            elementLib.clickByXpath(sel("contrat.who_me_xpath"));
         }
 
-        elementLib.clickByXpath("//label[@for='contractReplacement_false']");
+        elementLib.clickByXpath(sel("contrat.contract_replacement_false_xpath"));
 
-        elementLib.humanTypeById("startDate", dateEffet(1));
+        elementLib.humanTypeById(sel("contrat.start_date_id"), dateEffet(1));
     }
 
     private void remplirAdherents(FluxData flux) {
         String civilite = flux.getPersonnes().getFirst().getCivilite();
         elementLib.randomWait(1500, 2500);
         if (civilite.equalsIgnoreCase("M") || civilite.equalsIgnoreCase("Monsieur")) {
-            elementLib.clickByXpath("//label[@for='insured_title_monsieur']");
+            elementLib.clickByXpath(sel("adherent.title_monsieur_xpath"));
         } else {
-            elementLib.clickByXpath("//label[@for='insured_title_madame']");
+            elementLib.clickByXpath(sel("adherent.title_madame_xpath"));
         }
 
-        elementLib.humanTypeById("insured_lastname", flux.getPersonnes().getFirst().getNom());
-        elementLib.humanTypeById("insured_firstname", flux.getPersonnes().getFirst().getPrenom());
-        elementLib.humanTypeById("birthdate", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.humanTypeById(sel("adherent.lastname_id"), flux.getPersonnes().getFirst().getNom());
+        elementLib.humanTypeById(sel("adherent.firstname_id"), flux.getPersonnes().getFirst().getPrenom());
+        elementLib.humanTypeById(sel("adherent.birthdate_id"), flux.getPersonnes().getFirst().getDateNaissance());
         choixCategorieSocioPro(flux, 0);
         choixRegime(flux, 0);
         elementLib.randomWait(1500, 2500);
-        elementLib.humanTypeById("postalCode", flux.getPersonnes().get(0).getCodePostal());
+        elementLib.humanTypeById(sel("adherent.postal_code_id"), flux.getPersonnes().get(0).getCodePostal());
     }
 
     private void remplirConjoint(FluxData flux) {
         if (flux.getPersonnes().size() < 2) return;
 
-        elementLib.humanTypeById("partner-birthdate", flux.getPersonnes().get(1).getDateNaissance());
+        elementLib.humanTypeById(sel("conjoint.birthdate_id"), flux.getPersonnes().get(1).getDateNaissance());
         choixCategorieSocioPro(flux, 1);
         choixRegime(flux, 1);
     }
@@ -163,56 +180,56 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
                 || flux.getEnfants().getFirst().getNom().isEmpty()) return;
 
         ajouterEnfant();
-        elementLib.humanTypeById("child_0_birthdate", flux.getEnfants().getFirst().getDateNaissance());
+        elementLib.humanTypeById(sel("enfant.enfant0_birthdate_id"), flux.getEnfants().getFirst().getDateNaissance());
         elementLib.randomWait(1500, 2500);
 
         if (flux.getEnfants().size() >= 2
                 && flux.getEnfants().get(1).getNom() != null
                 && !flux.getEnfants().get(1).getNom().isEmpty()) {
             ajouterEnfant();
-            elementLib.humanTypeById("child_1_birthdate", flux.getEnfants().get(1).getDateNaissance());
+            elementLib.humanTypeById(sel("enfant.enfant1_birthdate_id"), flux.getEnfants().get(1).getDateNaissance());
         }
     }
 
     private void ajouterEnfant() {
         elementLib.randomWait(1500, 2500);
-        elementLib.clickByXpath("//*[@id='children_count']/button[2]");
+        elementLib.clickByXpath(sel("enfant.ajouter_xpath"));
     }
 
     private void recherche() {
         elementLib.randomWait(1500, 2500);
-        elementLib.clickByXpath("//button[normalize-space(text())='Découvrir les offres']");
+        elementLib.clickByXpath(sel("recherche.decouvrir_offres_xpath"));
     }
 
     private void choixCategorieSocioPro(FluxData flux, int index) {
-        String selectId = (index == 0) ? "insured_category_select" : "partner_category_select";
+        String selectId = (index == 0) ? sel("adherent.category_select_id") : sel("conjoint.category_select_id");
         String profession = flux.getPersonnes().get(index).getProfessionSpecifique();
 
-        String option = switch (profession.toLowerCase()) {
-            case "agriculteur"                          -> "Agriculteurs exploitants";
-            case "artisan"                              -> "Artisans";
-            case "salarié cadre"                        -> "Cadres";
-            case "chef d'entreprise"                    -> "Chefs d'entreprise";
-            case "commerçant"                           -> "Commerçants et assimilés";
-            case "salarié non cadre : employé"          -> "Employés, agents de maitrise";
-            case "ouvrier"                              -> "Ouvriers";
+        String cle = switch (profession.toLowerCase()) {
+            case "agriculteur"                          -> "agriculteur";
+            case "artisan"                              -> "artisan";
+            case "salarié cadre"                        -> "cadre";
+            case "chef d'entreprise"                    -> "chef_entreprise";
+            case "commerçant"                           -> "commercant";
+            case "salarié non cadre : employé"          -> "employe";
+            case "ouvrier"                              -> "ouvrier";
             case "profession libérale",
                  "profession libérale médicale",
-                 "profession libérale paramédicale"     -> "Professions libérales et assimilés";
-            case "retraité"                             -> "Retraités";
+                 "profession libérale paramédicale"     -> "liberale";
+            case "retraité"                             -> "retraite";
             default                                     -> null;
         };
 
-        if (option != null) {
-            elementLib.selectByLabel("#" + selectId, option);
+        if (cle != null) {
+            elementLib.selectByLabel("#" + selectId, sel("categorie_socio_pro." + cle));
         } else {
             log.warn("CSP non reconnue : '{}'", profession);
         }
     }
 
     private void choixRegime(FluxData flux, int index) {
-        String selectId = (index == 0) ? "insured_regime" : "partner_regime";
-        elementLib.selectByLabel("#" + selectId, "Sécurité Sociale");
+        String selectId = (index == 0) ? sel("adherent.regime_select_id") : sel("conjoint.regime_select_id");
+        elementLib.selectByLabel("#" + selectId, sel("regime.valeur"));
     }
 
     private String dateEffet(int mois) {
@@ -242,10 +259,11 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
     }
 
     private List<String> getPrixTtcParFormule(int formule) {
+        String template = sel("resultats.prix_selector_template");
         List<String> prix = new ArrayList<>();
         for (int i = formule; i <= 4; i++) {
             // Carte offre dont le libellé exact du niveau est "Niveau i" (exclut les variantes "+ Pack Bien-être")
-            Locator offre = page.locator(String.format(".pc-offer-check:has(small:text-is('Niveau %d'))", i));
+            Locator offre = page.locator(String.format(template, i));
             if (offre.count() > 0) {
                 String texte = offre.first()
                         .locator(".pc-offer__price .pc-price strong")

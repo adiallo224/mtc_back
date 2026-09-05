@@ -8,6 +8,7 @@ import com.mtc.mutuaConseil.models.FluxData;
 import com.mtc.mutuaConseil.models.Tarif;
 import com.mtc.mutuaConseil.models.TypeAssurance;
 import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
@@ -26,11 +27,26 @@ import java.util.regex.Pattern;
 @Service
 public class QuatremMIService extends BasePlaywrightService implements LaunchedService {
 
+    private static final String PROVIDER = "mutuelIndiv/quatrem-mi";
+
     private final Logger log = LoggerFactory.getLogger(QuatremMIService.class);
     private final TypeAssuranceService typeAssuranceService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
 
-    public QuatremMIService(TypeAssuranceService typeAssuranceService) {
+    public QuatremMIService(TypeAssuranceService typeAssuranceService, SelectorStore selectors) {
         this.typeAssuranceService = typeAssuranceService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
     }
 
     @Override
@@ -45,18 +61,19 @@ public class QuatremMIService extends BasePlaywrightService implements LaunchedS
 
         try {
             initializeBrowser(false);
-            connexion(c);
-            remplirContrat(flux);
-            remplirIdentite(flux);
-            remplirCoordonnees(flux);
-            remplirCouverture();
+            step("connexion", () -> connexion(c));
+            step("contrat", () -> remplirContrat(flux));
+            step("identite", () -> remplirIdentite(flux));
+            step("coordonnees", () -> remplirCoordonnees(flux));
+            step("couverture", this::remplirCouverture);
             if (flux.getPersonnes().size() >= 2 || (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty())) {
-                remplirBenficiaires(flux);
+                step("beneficiaires", () -> remplirBenficiaires(flux));
             }
             scrollDown(300);
-            suivant();
+            step("calcul", this::suivant);
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(6000, 8000);
+            currentStep = "lecture_resultats";
             List<String> couts = getPrixParFormule(c.getNiveau());
             tarif.setMontant(couts);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
@@ -65,11 +82,11 @@ public class QuatremMIService extends BasePlaywrightService implements LaunchedS
             }
             tarif.setExecution(true);
         } catch (Exception e) {
-            log.error("An error occurred", e);
+            log.error("Échec à l'étape '{}'", currentStep, e);
             tarif.setErreur(e.getMessage());
             String screenshotPath = captureScreenshot(tarif.getNom(), true, tarif);
             tarif.setCaptureImgErreur(screenshotPath);
-            tarif.setEtape("");
+            tarif.setEtape(currentStep);
         } finally {
             cleanup();
         }
@@ -79,7 +96,7 @@ public class QuatremMIService extends BasePlaywrightService implements LaunchedS
     private List<String> getPrixParFormule(int niveau) {
         List<String> prix = new ArrayList<>();
 
-        Locator cellules = page.locator("tr.prix.prixSansOption td[class*='formule_']");
+        Locator cellules = page.locator(sel("resultats.cellules_selector"));
         int count = cellules.count();
 
         for (int i = niveau-1; i < count; i++) {
@@ -97,36 +114,36 @@ public class QuatremMIService extends BasePlaywrightService implements LaunchedS
 
     private void connexion(Compte c) {
         humanLikeNavigate(c.getUrlFournisseur());
-        clickIfExists("//*[@id=\"bandeauAcceptationCookies\"]/div/div[2]/a[3]");
-        elementLib.humanTypeById("login", c.getUsername());
-        elementLib.humanTypeById("pwd", c.getPassword());
+        clickIfExists(sel("connexion.cookie_accept_xpath"));
+        elementLib.humanTypeById(sel("connexion.login_id"), c.getUsername());
+        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
         elementLib.randomWait(3000, 5000);
-        elementLib.clickById("authentificateSubmit");
+        elementLib.clickById(sel("connexion.submit_id"));
         elementLib.randomWait(700, 1300);
     }
 
     private void remplirContrat(FluxData flux) {
-        elementLib.humanTypeById("DateEffetSouhaitee", dateEffet(1));
+        elementLib.humanTypeById(sel("contrat.date_effet_id"), dateEffet(1));
     }
 
     private void remplirIdentite(FluxData flux) {
         choixCivilite(flux, 0);
-        elementLib.humanTypeById("NomSouscripteur", flux.getPersonnes().getFirst().getNom());
-        elementLib.humanTypeById("PrenomSouscripteur", flux.getPersonnes().getFirst().getPrenom());
-        elementLib.humanTypeById("DateNaissanceSouscripteur", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.humanTypeById(sel("identite.nom_id"), flux.getPersonnes().getFirst().getNom());
+        elementLib.humanTypeById(sel("identite.prenom_id"), flux.getPersonnes().getFirst().getPrenom());
+        elementLib.humanTypeById(sel("identite.date_naissance_id"), flux.getPersonnes().getFirst().getDateNaissance());
         choixRegime(flux, 0);
     }
 
     private void remplirCoordonnees(FluxData flux) {
-        elementLib.humanTypeById("AdresseSouscripteur", flux.getPersonnes().getFirst().getNumeroVoie() + " " + flux.getPersonnes().getFirst().getNomVoie());
-        elementLib.humanTypeById("CodePostalSouscripteur", flux.getPersonnes().getFirst().getCodePostal());
-        elementLib.humanTypeById("VilleSouscripteur", flux.getPersonnes().getFirst().getVille());
-        elementLib.humanTypeById("EmailSouscripteur", flux.getPersonnes().getFirst().getEmail());
-        elementLib.humanTypeById("PortableSouscripteur", flux.getPersonnes().getFirst().getTelephone());
+        elementLib.humanTypeById(sel("coordonnees.adresse_id"), flux.getPersonnes().getFirst().getNumeroVoie() + " " + flux.getPersonnes().getFirst().getNomVoie());
+        elementLib.humanTypeById(sel("coordonnees.code_postal_id"), flux.getPersonnes().getFirst().getCodePostal());
+        elementLib.humanTypeById(sel("coordonnees.ville_id"), flux.getPersonnes().getFirst().getVille());
+        elementLib.humanTypeById(sel("coordonnees.email_id"), flux.getPersonnes().getFirst().getEmail());
+        elementLib.humanTypeById(sel("coordonnees.telephone_id"), flux.getPersonnes().getFirst().getTelephone());
     }
 
     private void remplirCouverture() {
-        elementLib.clickById("RiaIndicateurCouverture-false");
+        elementLib.clickById(sel("couverture.indicateur_id"));
     }
 
     private void remplirBenficiaires(FluxData flux) {
@@ -135,37 +152,37 @@ public class QuatremMIService extends BasePlaywrightService implements LaunchedS
             scrollDown(200);
             ajoutSouscripteur();
             elementLib.randomWait(700, 1300);
-            choixLienParente("//*[@id='Beneficiaire_0_LienParente-button']", "//*[contains(@id,'Beneficiaire_0_LienParente-menu')]//li", "conjoint");
-            choixLienCiviliteBeneficiaire("//*[@id='Beneficiaire_0_Civilite-button']", "//*[contains(@id,'Beneficiaire_0_Civilite-menu')]//li", "conjoint", flux, 0);
-            elementLib.humanTypeById("Beneficiaire_0_Nom", flux.getPersonnes().get(1).getNom());
-            elementLib.humanTypeById("Beneficiaire_0_Prenom", flux.getPersonnes().get(1).getPrenom());
-            elementLib.humanTypeById("Beneficiaire_0_DateNaissance", flux.getPersonnes().get(1).getDateNaissance());
-            choixRegimeBeneficiaires("//*[@id='Beneficiaire_0_Regime-button']", "//*[contains(@id,'Beneficiaire_0_Regime-menu')]//li");
+            choixLienParente(sel("beneficiaire.conjoint_lien_button_xpath"), sel("beneficiaire.conjoint_lien_menu_xpath"), "conjoint");
+            choixLienCiviliteBeneficiaire(sel("beneficiaire.conjoint_civilite_button_xpath"), sel("beneficiaire.conjoint_civilite_menu_xpath"), "conjoint", flux, 0);
+            elementLib.humanTypeById(sel("beneficiaire.conjoint_nom_id"), flux.getPersonnes().get(1).getNom());
+            elementLib.humanTypeById(sel("beneficiaire.conjoint_prenom_id"), flux.getPersonnes().get(1).getPrenom());
+            elementLib.humanTypeById(sel("beneficiaire.conjoint_date_naissance_id"), flux.getPersonnes().get(1).getDateNaissance());
+            choixRegimeBeneficiaires(sel("beneficiaire.conjoint_regime_button_xpath"), sel("beneficiaire.conjoint_regime_menu_xpath"));
         }
         if (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty()) {
             ajoutSouscripteur();
             elementLib.randomWait(700, 1300);
-            choixLienParente("//*[@id='Beneficiaire_1_LienParente-button']", "//*[contains(@id,'Beneficiaire_1_LienParente-menu')]//li", "enfant");
-            choixLienCiviliteBeneficiaire("//*[@id='Beneficiaire_1_Civilite-button']", "//*[contains(@id,'Beneficiaire_1_Civilite-menu')]//li", "enfant", flux, 0);
-            elementLib.humanTypeById("Beneficiaire_1_Nom", flux.getEnfants().getFirst().getNom());
-            elementLib.humanTypeById("Beneficiaire_1_Prenom", flux.getEnfants().getFirst().getPrenom());
-            elementLib.humanTypeById("Beneficiaire_1_DateNaissance", flux.getEnfants().getFirst().getDateNaissance());
-            choixRegimeBeneficiaires("//*[@id='Beneficiaire_1_Regime-button']", "//*[contains(@id,'Beneficiaire_1_Regime-menu')]//li");
+            choixLienParente(sel("beneficiaire.enfant1_lien_button_xpath"), sel("beneficiaire.enfant1_lien_menu_xpath"), "enfant");
+            choixLienCiviliteBeneficiaire(sel("beneficiaire.enfant1_civilite_button_xpath"), sel("beneficiaire.enfant1_civilite_menu_xpath"), "enfant", flux, 0);
+            elementLib.humanTypeById(sel("beneficiaire.enfant1_nom_id"), flux.getEnfants().getFirst().getNom());
+            elementLib.humanTypeById(sel("beneficiaire.enfant1_prenom_id"), flux.getEnfants().getFirst().getPrenom());
+            elementLib.humanTypeById(sel("beneficiaire.enfant1_date_naissance_id"), flux.getEnfants().getFirst().getDateNaissance());
+            choixRegimeBeneficiaires(sel("beneficiaire.enfant1_regime_button_xpath"), sel("beneficiaire.enfant1_regime_menu_xpath"));
         }
         if (flux.getEnfants().size() == 2) {
             ajoutSouscripteur();
             elementLib.randomWait(700, 1300);
-            choixLienParente("//*[@id='Beneficiaire_2_LienParente-button']", "//*[contains(@id,'Beneficiaire_2_LienParente-menu')]//li", "enfant");
-            choixLienCiviliteBeneficiaire("//*[@id='Beneficiaire_2_Civilite-button']", "//*[contains(@id,'Beneficiaire_2_Civilite-menu')]//li", "enfant", flux, 1);
-            elementLib.humanTypeById("Beneficiaire_2_Nom", flux.getEnfants().get(1).getNom());
-            elementLib.humanTypeById("Beneficiaire_2_Prenom", flux.getEnfants().get(1).getPrenom());
-            elementLib.humanTypeById("Beneficiaire_2_DateNaissance", flux.getEnfants().get(1).getDateNaissance());
-            choixRegimeBeneficiaires("//*[@id='Beneficiaire_2_Regime-button']", "//*[contains(@id,'Beneficiaire_2_Regime-menu')]//li");
+            choixLienParente(sel("beneficiaire.enfant2_lien_button_xpath"), sel("beneficiaire.enfant2_lien_menu_xpath"), "enfant");
+            choixLienCiviliteBeneficiaire(sel("beneficiaire.enfant2_civilite_button_xpath"), sel("beneficiaire.enfant2_civilite_menu_xpath"), "enfant", flux, 1);
+            elementLib.humanTypeById(sel("beneficiaire.enfant2_nom_id"), flux.getEnfants().get(1).getNom());
+            elementLib.humanTypeById(sel("beneficiaire.enfant2_prenom_id"), flux.getEnfants().get(1).getPrenom());
+            elementLib.humanTypeById(sel("beneficiaire.enfant2_date_naissance_id"), flux.getEnfants().get(1).getDateNaissance());
+            choixRegimeBeneficiaires(sel("beneficiaire.enfant2_regime_button_xpath"), sel("beneficiaire.enfant2_regime_menu_xpath"));
         }
     }
 
     private void ajoutSouscripteur() {
-        elementLib.clickById("ajoutGroupeBeneficiaireInfoSouscripteur");
+        elementLib.clickById(sel("beneficiaire.ajouter_id"));
     }
 
     private void choixLienParente(String pathDropdown, String listLi, String lien) {
@@ -201,24 +218,24 @@ public class QuatremMIService extends BasePlaywrightService implements LaunchedS
     }
 
     private void suivant() {
-        elementLib.clickById("next");
+        elementLib.clickById(sel("beneficiaire.next_id"));
     }
 
     private void choixRegime(FluxData flux, int index) {
         elementLib.randomWait(700, 1300);
         if (index == 0) {
-            elementLib.clickByXpath("//*[@id=\"RegimeSouscripteur-button\"]");
+            elementLib.clickByXpath(sel("identite.regime_button_xpath"));
             elementLib.randomWait(700, 1300);
-            page.locator("xpath=//*[contains(@id,'RegimeSouscripteur-menu')]//li").nth(1).click();
+            page.locator("xpath=" + sel("identite.regime_menu_xpath")).nth(1).click();
         }
     }
 
     private void choixCivilite(FluxData flux, int index) {
         elementLib.randomWait(700, 1300);
         if (index == 0) {
-            elementLib.clickByXpath("//*[@id='CiviliteSouscripteur-button']");
+            elementLib.clickByXpath(sel("identite.civilite_button_xpath"));
             elementLib.randomWait(700, 1300);
-            Locator options = page.locator("xpath=//*[contains(@id,'CiviliteSouscripteur-menu')]//li");
+            Locator options = page.locator("xpath=" + sel("identite.civilite_menu_xpath"));
             String civilite = flux.getPersonnes().get(index).getCivilite();
             if (civilite.equalsIgnoreCase("Monsieur") || civilite.equalsIgnoreCase("M"))
                 options.nth(1).click();

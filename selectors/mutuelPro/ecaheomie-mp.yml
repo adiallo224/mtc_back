@@ -1,0 +1,55 @@
+# Sélecteurs pour ECA Heomie - Mutuelle Pro / TNS (assuMutuelPro/EcaHeomieMProService)
+# Parcours "entreprise / TNS" différent de la mutuelle individuelle (cf. selectors/mutuelIndiv/ecaheomie-mi.yml).
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  login_id: login-name
+  password_id: login-password
+  submit_xpath: "//form//button[@type='submit']"
+
+navigation:
+  nouveau_devis_entreprise_xpath: "//a[@href='https://partenaire.heomi.fr/nouveau-devis/entreprise']"
+  presentation_sante_tns_xpath: "//a[@href='https://partenaire.heomi.fr/entreprise/tns/presentation/SANTE_TNS']"
+  etape_suivante_text: "étape suivante"
+
+contrat:
+  date_effet_id: date_effet_sante
+  date_naissance_assure_id: dn_assure
+  has_conjoint_checkbox_id: has_conjoint-0
+  date_naissance_conjoint_id: dn_conjoint
+  code_postal_id: code_postal
+  nb_enfants_select_id: nbr_enfants
+  date_naissance_enfant0_id: dn_enfant_0
+  date_naissance_enfant1_id: dn_enfant_1
+  soins_generaux_faible_id: soins_generaux_faible
+  hospitalisation_faible_id: hospitalisation_faible
+  optique_faible_id: optique_faible
+  dentaire_faible_id: dentaire_faible
+  appareil_auditif_tns_faible_id: appareil_auditif_tns_faible
+  medecines_douces_tns_non_id: medecines_douces_tns_non
+
+profession:
+  dropdown_xpath: "//span[@data-select2-id='1']"
+  search_input_xpath: "//input[@aria-controls='select2-profession-results']"
+  first_result_css: "#select2-profession-results li"
+
+statut:
+  select_xpath: "//select[@id='statut']"
+  select_id: statut
+  # Valeurs techniques du <select> "statut" selon le code professionSpecifique (ARTISAN, CHEF_ENTREPRISE, etc.)
+  artisan: "INDEPENDANT_ARTISAN"
+  chef_entreprise: "MANDATAIRE_SOCIAL"
+  auto_entrepreneur: "AUTO_ENTREPRENEUR"
+  defaut: "ARTISAN"
+
+regime:
+  select_id: regime
+  valeur: "SSI / Régime général"
+
+formule:
+  select_id: formule_choisie_miltis
+  # %d est remplacé par (niveau * 100) dans le code
+  valeur_template: "DIRECT_%d"
+
+resultats:
+  cout_xpath: "//*[@id='panelsStayOpen-collapseOne']/div/div[2]/div[1]/div[1]/div[3]/strong/span"

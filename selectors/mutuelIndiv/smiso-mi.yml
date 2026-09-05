@@ -1,0 +1,55 @@
+# Sélecteurs pour Smiso - Mutuelle Individuelle (assuMutuelIndiv/SmisoMIService)
+# Modifie ce fichier quand le site Smiso change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  cookie_accept_xpath: "//*[@id=\"bandeauAcceptationCookies\"]/div/div[2]/a[3]"
+  username_xpath: "//input[@name='username']"
+  password_id: password
+  submit_id: kc-login
+
+navigation:
+  nouveau_projet_selector: "a[href='/projets/type']"
+  particulier_tns_selector: "h3:has-text('Un particulier ou un TNS')"
+
+beneficiaires:
+  postal_code_id: postalCode
+  date_naissance_xpath: "//input[@placeholder='JJ/MM/AAAA']"
+  regime_souscripteur_xpath: "//div[@id='souscripteur']//input[@id='regimeCode']"
+  regime_option_xpath: "//li[@id='regimeCode-option-0']"
+  conjoint_toggle_selector: "span:has-text('Son conjoint')"
+  conjoint_date_naissance_xpath: "//div[@id='conjoint']//input[@placeholder='JJ/MM/AAAA']"
+  conjoint_regime_xpath: "//div[@id='conjoint']//input[@id='regimeCode']"
+  enfants_toggle_selector: "span:has-text('Ses enfants')"
+  enfant1_date_naissance_xpath: "//div[@id='enfant(s)']//input[@placeholder='JJ/MM/AAAA']"
+  enfant1_regime_xpath: "//div[@id='enfant(s)']//input[@id='regimeCode']"
+  ajouter_enfant_xpath: "//button[normalize-space()='Ajouter un enfant']"
+  # NB: valeur historique (XPath) passée en tant qu'id -- comportement d'origine préservé tel quel.
+  enfant2_date_naissance_xpath: "//div[@id='enfant2']//input[@placeholder='JJ/MM/AAAA']"
+  enfant2_regime_xpath: "//div[@id='enfant2']//input[@id='regimeCode']"
+  valider_xpath: "//button[normalize-space()='Valider']"
+
+couverture:
+  generation_xpath: "//h3[normalize-space()='Génération 100% Nous']"
+  creer_devis_xpath: "//button[normalize-space()='Créer un devis']"
+
+contact:
+  civilite_monsieur_xpath: "//button[normalize-space()='Monsieur']"
+  civilite_madame_xpath: "//button[normalize-space()='Madame']"
+  lastname_id: lastname
+  firstname_id: firstname
+  phone_xpath: "//input[@name='phone']"
+  email_id: email
+  valider_xpath: "//button[normalize-space()='Valider']"
+
+besoins:
+  cartes_css: "div.MuiCard-root"
+  equilibre_selector: "button[aria-label='Equilibré']"
+  valider_xpath: "//button[normalize-space()='Valider']"
+
+proposition:
+  ajouter_solution_xpath: "//p[normalize-space()='Ajouter une solution']"
+
+resultats:
+  cartes_css: "div.MuiCard-root"
+  formule_pattern: "Formule \\d+%"

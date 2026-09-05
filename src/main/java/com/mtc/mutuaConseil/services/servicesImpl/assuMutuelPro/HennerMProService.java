@@ -10,6 +10,7 @@ import com.mtc.mutuaConseil.models.FluxData;
 import com.mtc.mutuaConseil.models.Tarif;
 import com.mtc.mutuaConseil.models.TypeAssurance;
 import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
@@ -26,11 +27,26 @@ import static java.util.Objects.nonNull;
 @Service
 public class HennerMProService extends BasePlaywrightService implements LaunchedService {
 
+    private static final String PROVIDER = "mutuelPro/henner-mp";
+
     private final Logger log = LoggerFactory.getLogger(HennerMProService.class);
     private final TypeAssuranceService typeAssuranceService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
 
-    public HennerMProService(TypeAssuranceService typeAssuranceService) {
+    public HennerMProService(TypeAssuranceService typeAssuranceService, SelectorStore selectors) {
         this.typeAssuranceService = typeAssuranceService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
     }
 
     @Override
@@ -46,15 +62,16 @@ public class HennerMProService extends BasePlaywrightService implements Launched
         try {
             initializeBrowser(false);
             humanLikeNavigate(c.getUrlFournisseur());
-            connexion(c);
-            remplirCreationDevis();
-            remplirChoixDevis();
-            remplirContrat(flux);
-            remplirSante();
-            remplirDevisSante(flux);
-            suivant();
+            step("connexion", () -> connexion(c));
+            step("creation_devis", this::remplirCreationDevis);
+            step("choix_devis", this::remplirChoixDevis);
+            step("contrat", () -> remplirContrat(flux));
+            step("sante", this::remplirSante);
+            step("devis_sante", () -> remplirDevisSante(flux));
+            step("calcul", this::suivant);
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(6000, 8000);
+            currentStep = "lecture_resultats";
             String cout = getPrixByFormule(4);
             log.info("cout {}", cout);
             tarif.setMontant(cout);
@@ -65,11 +82,11 @@ public class HennerMProService extends BasePlaywrightService implements Launched
             }
             tarif.setExecution(true);
         } catch (Exception e) {
-            log.error("An error occurred", e);
+            log.error("Échec à l'étape '{}'", currentStep, e);
             tarif.setErreur(e.getMessage());
             String screenshotPath = captureScreenshot(tarif.getNom(), true, tarif);
             tarif.setCaptureImgErreur(screenshotPath);
-            tarif.setEtape("");
+            tarif.setEtape(currentStep);
         } finally {
             cleanup();
         }
@@ -78,44 +95,44 @@ public class HennerMProService extends BasePlaywrightService implements Launched
 
     private void connexion(Compte c) {
         elementLib.randomWait(700, 1300);
-        elementLib.clickByRole("TOUT ACCEPTER");
-        elementLib.humanTypeById("mat-input-0", c.getUsername());
-        elementLib.humanTypeById("mat-input-1", c.getPassword());
+        elementLib.clickByRole(sel("connexion.accept_cookies_label"));
+        elementLib.humanTypeById(sel("connexion.username_id"), c.getUsername());
+        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
         elementLib.randomWait(700, 1300);
-        elementLib.clickByTextElement("Se connecter");
+        elementLib.clickByTextElement(sel("connexion.connexion_text"));
         elementLib.randomWait(700, 1300);
     }
 
     private void remplirCreationDevis() {
-        elementLib.click("a[title=\"Création d'un devis\"]");
+        elementLib.click(sel("navigation.creation_devis_selector"));
     }
 
     private void remplirChoixDevis() {
-        elementLib.clickByXpath("//span[normalize-space()='TNS']");
+        elementLib.clickByXpath(sel("navigation.tns_xpath"));
     }
 
     private void remplirContrat(FluxData flux) {
         elementLib.randomWait(700, 1300);
-        elementLib.humanTypeByXpath("//input[@data-placeholder='Date de naissance']", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.humanTypeByXpath(sel("contrat.date_naissance_xpath"), flux.getPersonnes().getFirst().getDateNaissance());
         clickBody();
         elementLib.randomWait(700, 1300);
-        elementLib.typeByLabel("Code postal", flux.getPersonnes().getFirst().getCodePostal());
+        elementLib.typeByLabel(sel("contrat.code_postal_label"), flux.getPersonnes().getFirst().getCodePostal());
         choixStatut(flux);
         elementLib.randomWait(700, 1300);
-        elementLib.typeByLabel("Nom (facultatif)", flux.getPersonnes().getFirst().getNom());
+        elementLib.typeByLabel(sel("contrat.nom_label"), flux.getPersonnes().getFirst().getNom());
         elementLib.randomWait(700, 1300);
-        elementLib.typeByLabel("Prénom (facultatif)", flux.getPersonnes().getFirst().getPrenom());
+        elementLib.typeByLabel(sel("contrat.prenom_label"), flux.getPersonnes().getFirst().getPrenom());
         elementLib.randomWait(700, 1300);
-        elementLib.clickByRole("VALIDER");
+        elementLib.clickByRole(sel("contrat.valider_label"));
     }
 
     private void remplirSante() {
         elementLib.randomWait(700, 1300);
-        elementLib.clickByTextElement("Santé");
+        elementLib.clickByTextElement(sel("navigation.sante_text"));
     }
 
     private void remplirDevisSante(FluxData flux) {
-        elementLib.humanTypeByXpath("//input[@data-placeholder=\"Date d'effet\"]", dateEffet(1));
+        elementLib.humanTypeByXpath(sel("devis_sante.date_effet_xpath"), dateEffet(1));
         elementLib.randomWait(700, 1300);
         clickBody();
         if (flux.getPersonnes().size() >= 2) {
@@ -124,15 +141,15 @@ public class HennerMProService extends BasePlaywrightService implements Launched
         }
         if (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty()) {
             remplirEnfant(flux,
-                    "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[1]/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input",
-                    "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[1]/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span",
+                    sel("devis_sante.enfant1_date_naissance_xpath"),
+                    sel("devis_sante.enfant1_regime_xpath"),
                     0);
             scrollDown(100);
         }
         if (flux.getEnfants().size() >= 2) {
             remplirEnfant(flux,
-                    "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[2]/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input",
-                    "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[2]/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span",
+                    sel("devis_sante.enfant2_date_naissance_xpath"),
+                    sel("devis_sante.enfant2_regime_xpath"),
                     1);
             scrollDown(250);
         }
@@ -142,11 +159,11 @@ public class HennerMProService extends BasePlaywrightService implements Launched
         ajoutConjoint();
         elementLib.randomWait(700, 1300);
         elementLib.humanTypeByXpath(
-                "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input",
+                sel("devis_sante.conjoint_date_naissance_xpath"),
                 flux.getPersonnes().get(1).getDateNaissance());
         elementLib.randomWait(700, 1300);
         clickBody();
-        choixRegime("/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span");
+        choixRegime(sel("devis_sante.conjoint_regime_xpath"));
     }
 
     private void remplirEnfant(FluxData flux, String xpathDateNaissance, String xpathRegime, int index) {
@@ -160,9 +177,9 @@ public class HennerMProService extends BasePlaywrightService implements Launched
         elementLib.randomWait(700, 1300);
         elementLib.clickByXpath(xpath);
         elementLib.randomWait(700, 1300);
-        Locator options = page.locator("xpath=//div[@role='listbox']//mat-option[@role='option']");
+        Locator options = page.locator("xpath=" + sel("devis_sante.regime_options_xpath"));
         for (int i = 0; i < options.count(); i++) {
-            if (options.nth(i).textContent().trim().equalsIgnoreCase("Régime Général")) {
+            if (options.nth(i).textContent().trim().equalsIgnoreCase(sel("devis_sante.regime_valeur"))) {
                 options.nth(i).click();
                 break;
             }
@@ -171,17 +188,17 @@ public class HennerMProService extends BasePlaywrightService implements Launched
 
     private void ajoutConjoint() {
         elementLib.randomWait(700, 1300);
-        elementLib.clickByTextElement("Ajouter un conjoint");
+        elementLib.clickByTextElement(sel("devis_sante.ajouter_conjoint_text"));
     }
 
     private void ajoutEnfant() {
         elementLib.randomWait(700, 1300);
-        elementLib.clickByTextElement("Ajouter un enfant");
+        elementLib.clickByTextElement(sel("devis_sante.ajouter_enfant_text"));
     }
 
     private void suivant() {
         elementLib.randomWait(700, 1300);
-        elementLib.clickByTextElement("TARIFER");
+        elementLib.clickByTextElement(sel("navigation.tarifer_text"));
     }
 
     private String dateEffet(int mois) {
@@ -192,18 +209,18 @@ public class HennerMProService extends BasePlaywrightService implements Launched
 
     private void choixStatut(FluxData flux) {
         elementLib.randomWait(700, 1300);
-        elementLib.clickByXpath("//mat-form-field[.//label[contains(normalize-space(.), 'Statut')]]//mat-select[@role='combobox']");
+        elementLib.clickByXpath(sel("statut.dropdown_xpath"));
         elementLib.randomWait(700, 1300);
         String professionSpecifique = flux.getPersonnes().getFirst().getProfessionSpecifique();
         boolean autoEntrepreneur = Boolean.TRUE.equals(flux.getPersonnes().getFirst().getAutoEntrepreneur());
         String libelleCible = autoEntrepreneur
-                ? "Auto-entrepreneur dépendant des régimes micro-BNC ou micro-BIC"
+                ? sel("statut.auto_entrepreneur_libelle")
                 : mapProfessionSpecifiqueToStatut(professionSpecifique);
         if (libelleCible.isEmpty()) {
             log.warn("Aucun statut TNS correspondant pour professionSpecifique={}", professionSpecifique);
             return;
         }
-        Locator options = page.locator("xpath=//div[@role='listbox']//mat-option[@role='option']");
+        Locator options = page.locator("xpath=" + sel("statut.options_xpath"));
         for (int i = 0; i < options.count(); i++) {
             if (options.nth(i).textContent().trim().equalsIgnoreCase(libelleCible)) {
                 options.nth(i).click();
@@ -217,37 +234,35 @@ public class HennerMProService extends BasePlaywrightService implements Launched
             return "";
         }
         return switch (professionSpecifique.trim().toLowerCase()) {
-            case "agriculteur" -> "Exploitant agricole";
-            case "artisan", "commerçant", "ouvrier" ->
-                    "Artisan ou commerçant soumis à l’impôt sur le bénéfice industriel et commercial (BIC)";
-            case "chef d'entreprise" ->
-                    "Gérant non-salarié d’une EURL, SARL ou SELARL relevant de l’article 62 du CGI";
+            case "agriculteur" -> sel("statut.libelle_agriculteur");
+            case "artisan", "commerçant", "ouvrier" -> sel("statut.libelle_artisan_commercant_ouvrier");
+            case "chef d'entreprise" -> sel("statut.libelle_chef_entreprise");
             case "profession libérale", "profession libérale médicale", "profession libérale paramédicale" ->
-                    "Professionnel libéral soumis à l’impôt sur le bénéfice non commercial (BNC)";
-            case "salarié cadre", "salarié non cadre : employé" -> "Mandataire social assimilé à un salarié";
+                    sel("statut.libelle_profession_liberale");
+            case "salarié cadre", "salarié non cadre : employé" -> sel("statut.libelle_salarie_cadre");
             default -> "";
         };
     }
 
     public String getPrixFormuleActive() {
         return page.locator(
-                        ".henner-bar.active")
-                .locator("xpath=ancestor::div[contains(@class,'indiv-pricing--content--bloc-item')]")
-                .locator(".indiv-pricing--content--bloc-item-element-top--price-amount")
+                        sel("resultats.formule_active_css"))
+                .locator("xpath=" + sel("resultats.formule_active_ancestor_xpath"))
+                .locator(sel("resultats.formule_active_montant_css"))
                 .textContent()
                 .trim();
     }
 
     public String getPrixByFormule(int formule) {
         Locator label = page.locator(
-                ".indiv-pricing--content--bloc-item-element-levels-label",
-                new Page.LocatorOptions().setHasText("Fomule " + formule)
+                sel("resultats.formule_label_css"),
+                new Page.LocatorOptions().setHasText(sel("resultats.formule_recherchee_prefixe") + formule)
         );
 
-        Locator card = label.locator("xpath=ancestor::div[contains(@class,'indiv-pricing--content--bloc-item')]");
+        Locator card = label.locator("xpath=" + sel("resultats.formule_active_ancestor_xpath"));
 
         return card.locator(
-                ".indiv-pricing--content--bloc-item-element-top--price-amount"
+                sel("resultats.formule_active_montant_css")
         ).textContent().trim();
     }
 }

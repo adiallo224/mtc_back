@@ -9,6 +9,7 @@ import com.mtc.mutuaConseil.models.FluxData;
 import com.mtc.mutuaConseil.models.Tarif;
 import com.mtc.mutuaConseil.models.TypeAssurance;
 import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.InformationsPersonne;
@@ -30,11 +31,26 @@ import java.util.List;
 @Service
 public class Ami3fMProService extends BasePlaywrightService implements LaunchedService {
 
+    private static final String PROVIDER = "mutuelPro/ami3f-mp";
+
     private final Logger log = LoggerFactory.getLogger(Ami3fMProService.class);
     private final TypeAssuranceService typeAssuranceService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
 
-    public Ami3fMProService(TypeAssuranceService typeAssuranceService) {
+    public Ami3fMProService(TypeAssuranceService typeAssuranceService, SelectorStore selectors) {
         this.typeAssuranceService = typeAssuranceService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
     }
 
     @Override
@@ -49,12 +65,13 @@ public class Ami3fMProService extends BasePlaywrightService implements LaunchedS
 
         try {
             initializeBrowser(false);
-            connexion(c);
-            choixTarification();
-            remplirComplementaireSante(flux);
+            step("connexion", () -> connexion(c));
+            step("tarification", this::choixTarification);
+            step("complementaire_sante", () -> remplirComplementaireSante(flux));
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(6000, 8000);
-            String cout = getPrixTtcParFormule("Formule F2");
+            currentStep = "lecture_resultats";
+            String cout = getPrixTtcParFormule(sel("resultats.formule_recherchee"));
             log.info("cout {}", cout);
             tarif.setMontant(cout);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
@@ -63,11 +80,11 @@ public class Ami3fMProService extends BasePlaywrightService implements LaunchedS
             }
             tarif.setExecution(true);
         } catch (Exception e) {
-            log.error("An error occurred", e);
+            log.error("Échec à l'étape '{}'", currentStep, e);
             tarif.setErreur(e.getMessage());
             String screenshotPath = captureScreenshot(tarif.getNom(), true, tarif);
             tarif.setCaptureImgErreur(screenshotPath);
-            tarif.setEtape("");
+            tarif.setEtape(currentStep);
         } finally {
             cleanup();
         }
@@ -76,73 +93,73 @@ public class Ami3fMProService extends BasePlaywrightService implements LaunchedS
 
     private void connexion(Compte c) {
         humanLikeNavigate(c.getUrlFournisseur());
-        elementLib.humanTypeByXpath("//input[@name='login']", c.getUsername());
-        elementLib.humanTypeByXpath("//input[@name='password']", c.getPassword());
+        elementLib.humanTypeByXpath(sel("connexion.login_xpath"), c.getUsername());
+        elementLib.humanTypeByXpath(sel("connexion.password_xpath"), c.getPassword());
         elementLib.randomWait(700, 1300);
-        elementLib.click("//button[@type='submit']");
+        elementLib.click(sel("connexion.submit_xpath"));
         elementLib.randomWait(700, 1300);
     }
 
     private void choixTarification() {
         elementLib.randomWait(1500, 2500);
-        elementLib.click("//*[@id='navmenu-tarif']");
-        elementLib.click("//span[normalize-space()='Complémentaire Santé']");
+        elementLib.click(sel("navigation.menu_tarif_xpath"));
+        elementLib.click(sel("navigation.complementaire_sante_xpath"));
         page.evaluate("window.scrollBy(0, 450)");
         elementLib.randomWait(1500, 2500);
-        elementLib.click("//span[normalize-space()='ACCÉDER A LA TARIFICATION']");
+        elementLib.click(sel("navigation.acceder_tarification_xpath"));
     }
 
     private void remplirComplementaireSante(FluxData flux) {
-        elementLib.humanTypeById("nom_assure_1", flux.getPersonnes().getFirst().getNom());
-        elementLib.humanTypeById("prenom_assure_1", flux.getPersonnes().getFirst().getPrenom());
-        elementLib.humanTypeById("nom_naiss_assure_1", flux.getPersonnes().getFirst().getNom());
-        elementLib.humanTypeById("dt_naiss_assure_1", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.humanTypeById(sel("assure1.nom_id"), flux.getPersonnes().getFirst().getNom());
+        elementLib.humanTypeById(sel("assure1.prenom_id"), flux.getPersonnes().getFirst().getPrenom());
+        elementLib.humanTypeById(sel("assure1.nom_naissance_id"), flux.getPersonnes().getFirst().getNom());
+        elementLib.humanTypeById(sel("assure1.date_naissance_id"), flux.getPersonnes().getFirst().getDateNaissance());
         choixPays(flux, 0);
-        elementLib.humanTypeById("cp_naiss_assure_1", flux.getPersonnes().getFirst().getCodePostal());
+        elementLib.humanTypeById(sel("assure1.cp_naissance_id"), flux.getPersonnes().getFirst().getCodePostal());
         choixVille(flux, 0);
         choixSexe(flux, 0);
         choixSituationFamilliale(flux, 0);
         choixRegime(flux, 0);
-        elementLib.humanTypeById("profession_assure_1", flux.getPersonnes().getFirst().getProfession());
-        elementLib.clickById("div_radio_is_ppe_assure_1_false");
-        elementLib.clickById("radio_ppe_famille_assure_1_false");
+        elementLib.humanTypeById(sel("assure1.profession_id"), flux.getPersonnes().getFirst().getProfession());
+        elementLib.clickById(sel("assure1.ppe_id"));
+        elementLib.clickById(sel("assure1.ppe_famille_id"));
 
         if (flux.getPersonnes().size() >= 2) {
-            elementLib.clickById("btn-add-conjoint");
-            elementLib.humanTypeById("nom_assure_2", flux.getPersonnes().get(1).getNom());
-            elementLib.humanTypeById("prenom_assure_2", flux.getPersonnes().get(1).getPrenom());
-            elementLib.humanTypeById("nom_naiss_assure_2", flux.getPersonnes().get(1).getNom());
-            elementLib.humanTypeById("dt_naiss_assure_2", flux.getPersonnes().get(1).getDateNaissance());
+            elementLib.clickById(sel("assure2.ajouter_conjoint_id"));
+            elementLib.humanTypeById(sel("assure2.nom_id"), flux.getPersonnes().get(1).getNom());
+            elementLib.humanTypeById(sel("assure2.prenom_id"), flux.getPersonnes().get(1).getPrenom());
+            elementLib.humanTypeById(sel("assure2.nom_naissance_id"), flux.getPersonnes().get(1).getNom());
+            elementLib.humanTypeById(sel("assure2.date_naissance_id"), flux.getPersonnes().get(1).getDateNaissance());
             choixPays(flux, 1);
-            elementLib.humanTypeById("cp_naiss_assure_2", flux.getPersonnes().get(1).getCodePostal());
+            elementLib.humanTypeById(sel("assure2.cp_naissance_id"), flux.getPersonnes().get(1).getCodePostal());
             choixVille(flux, 1);
             choixSexe(flux, 1);
             choixRegime(flux, 1);
-            elementLib.humanTypeById("profession_assure_2", flux.getPersonnes().get(1).getProfession());
-            elementLib.clickById("div_radio_is_ppe_assure_2_false");
-            elementLib.clickById("radio_ppe_famille_assure_2_false");
+            elementLib.humanTypeById(sel("assure2.profession_id"), flux.getPersonnes().get(1).getProfession());
+            elementLib.clickById(sel("assure2.ppe_id"));
+            elementLib.clickById(sel("assure2.ppe_famille_id"));
 
             if (flux.getEnfants().getFirst().getNom() != null) {
                 elementLib.randomWait(700, 1300);
-                elementLib.clickById("btn-add-enfant");
+                elementLib.clickById(sel("enfant1.ajouter_id"));
                 elementLib.randomWait(700, 1300);
                 choixSexeEnfant(flux, 0);
-                elementLib.humanTypeById("nom_enfant_1", flux.getEnfants().getFirst().getNom());
-                elementLib.humanTypeById("prenom_enfant_1", flux.getEnfants().getFirst().getPrenom());
-                elementLib.humanTypeById("dt_naiss_enfant_1", flux.getEnfants().getFirst().getDateNaissance());
+                elementLib.humanTypeById(sel("enfant1.nom_id"), flux.getEnfants().getFirst().getNom());
+                elementLib.humanTypeById(sel("enfant1.prenom_id"), flux.getEnfants().getFirst().getPrenom());
+                elementLib.humanTypeById(sel("enfant1.date_naissance_id"), flux.getEnfants().getFirst().getDateNaissance());
                 choixPaysEnfant(flux, 0);
-                elementLib.humanTypeById("cp_naiss_enfant_1", flux.getPersonnes().getFirst().getCodePostal());
+                elementLib.humanTypeById(sel("enfant1.cp_naissance_id"), flux.getPersonnes().getFirst().getCodePostal());
                 choixVilleEnfants(flux, 0);
                 choixRegimeEnfant(flux, 0);
             }
             if (flux.getEnfants().size() == 2) {
-                elementLib.clickById("btn-add-enfant");
+                elementLib.clickById(sel("enfant2.ajouter_id"));
                 choixSexeEnfant(flux, 1);
-                elementLib.humanTypeById("nom_enfant_2", flux.getPersonnes().get(1).getNom());
-                elementLib.humanTypeById("prenom_enfant_2", flux.getPersonnes().get(1).getPrenom());
-                elementLib.humanTypeById("dt_naiss_enfant_2", flux.getPersonnes().get(1).getDateNaissance());
+                elementLib.humanTypeById(sel("enfant2.nom_id"), flux.getPersonnes().get(1).getNom());
+                elementLib.humanTypeById(sel("enfant2.prenom_id"), flux.getPersonnes().get(1).getPrenom());
+                elementLib.humanTypeById(sel("enfant2.date_naissance_id"), flux.getPersonnes().get(1).getDateNaissance());
                 choixPaysEnfant(flux, 1);
-                elementLib.humanTypeById("cp_naiss_enfant_2", flux.getPersonnes().get(0).getCodePostal());
+                elementLib.humanTypeById(sel("enfant2.cp_naissance_id"), flux.getPersonnes().get(0).getCodePostal());
                 choixVilleEnfants(flux, 1);
                 choixRegimeEnfant(flux, 1);
             }
@@ -156,67 +173,67 @@ public class Ami3fMProService extends BasePlaywrightService implements LaunchedS
 
     private void adresseRisques(FluxData flux, int index) {
         elementLib.randomWait(1500, 2500);
-        elementLib.humanTypeById("r_adresse_1", flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
-        elementLib.humanTypeById("r_code_postal", flux.getPersonnes().get(index).getCodePostal());
+        elementLib.humanTypeById(sel("adresse_risque.adresse_id"), flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
+        elementLib.humanTypeById(sel("adresse_risque.code_postal_id"), flux.getPersonnes().get(index).getCodePostal());
         choixVille1(flux, index);
         suivant();
     }
 
     private void suivant() {
-        elementLib.click("//input[@src='img/suivant.jpg']");
+        elementLib.click(sel("navigation.suivant_xpath"));
     }
 
     private void choixRegime(FluxData flux, int index) {
-        String selectId = index == 0 ? "regime_assure_1" : "regime_assure_2";
-        selectOptionContaining(selectId, "Régime général");
+        String selectId = index == 0 ? sel("assure1.regime_select_id") : sel("assure2.regime_select_id");
+        selectOptionContaining(selectId, sel("textes.regime_general_contains"));
     }
 
     private void choixRegimeEnfant(FluxData flux, int index) {
-        String selectId = index == 0 ? "regime_enfant_1" : "regime_enfant_2";
-        selectOptionContaining(selectId, "de l'adhérent principal");
+        String selectId = index == 0 ? sel("enfant1.regime_select_id") : sel("enfant2.regime_select_id");
+        selectOptionContaining(selectId, sel("textes.regime_enfant_contains"));
     }
 
     private void choixPays(FluxData flux, int index) {
-        String selectId = index == 0 ? "pays_naiss_assure_1" : "pays_naiss_assure_2";
+        String selectId = index == 0 ? sel("assure1.pays_naissance_select_id") : sel("assure2.pays_naissance_select_id");
         selectOptionContaining(selectId, flux.getPersonnes().get(index).getPays());
     }
 
     private void choixPaysEnfant(FluxData flux, int index) {
-        String selectId = index == 0 ? "pays_naiss_enfant_1" : "pays_naiss_assure_2";
+        String selectId = index == 0 ? sel("enfant1.pays_naissance_select_id") : sel("enfant2.pays_naissance_select_id");
         selectOptionContaining(selectId, flux.getPersonnes().get(index).getPays());
     }
 
     private void choixVille(FluxData flux, int index) {
-        String selectId = index == 0 ? "ville_naiss_assure_1" : "ville_naiss_assure_2";
+        String selectId = index == 0 ? sel("assure1.ville_naissance_select_id") : sel("assure2.ville_naissance_select_id");
         selectOptionEquals(selectId, flux.getPersonnes().get(index).getVille());
     }
 
     private void choixVilleEnfants(FluxData flux, int index) {
-        String selectId = index == 0 ? "ville_naiss_enfant_1" : "ville_naiss_enfant_2";
+        String selectId = index == 0 ? sel("enfant1.ville_naissance_select_id") : sel("enfant2.ville_naissance_select_id");
         selectOptionEquals(selectId, flux.getPersonnes().get(index).getVille());
     }
 
     private void choixVille1(FluxData flux, int index) {
-        selectOptionEquals("r_ville", flux.getPersonnes().get(index).getVille());
+        selectOptionEquals(sel("adresse_risque.ville_select_id"), flux.getPersonnes().get(index).getVille());
     }
 
     private void choixSexe(FluxData flux, int index) {
-        String selectId = index == 0 ? "sexe_assure_1" : "sexe_assure_2";
+        String selectId = index == 0 ? sel("assure1.sexe_select_id") : sel("assure2.sexe_select_id");
         String civilite = flux.getPersonnes().get(index).getCivilite();
-        if (civilite.equalsIgnoreCase("Monsieur")) selectOptionEquals(selectId, "Homme");
-        else if (civilite.equalsIgnoreCase("Madame")) selectOptionEquals(selectId, "Femme");
+        if (civilite.equalsIgnoreCase("Monsieur")) selectOptionEquals(selectId, sel("textes.sexe_homme"));
+        else if (civilite.equalsIgnoreCase("Madame")) selectOptionEquals(selectId, sel("textes.sexe_femme"));
     }
 
     private void choixSexeEnfant(FluxData flux, int index) {
-        String selectId = index == 0 ? "sexe_enfant_1" : "sexe_enfant_2";
+        String selectId = index == 0 ? sel("enfant1.sexe_select_id") : sel("enfant2.sexe_select_id");
         String civilite = flux.getPersonnes().get(index).getCivilite();
-        if (civilite.equalsIgnoreCase("Monsieur")) selectOptionEquals(selectId, "Masculin");
-        else if (civilite.equalsIgnoreCase("Madame")) selectOptionEquals(selectId, "Féminin");
+        if (civilite.equalsIgnoreCase("Monsieur")) selectOptionEquals(selectId, sel("textes.sexe_masculin"));
+        else if (civilite.equalsIgnoreCase("Madame")) selectOptionEquals(selectId, sel("textes.sexe_feminin"));
     }
 
     private void choixSituationFamilliale(FluxData flux, int index) {
-        if (flux.getPersonnes().size() == 1) selectOptionEquals("i_sitfam", "Célibataire");
-        else selectOptionContaining("i_sitfam", "Marié");
+        if (flux.getPersonnes().size() == 1) selectOptionEquals(sel("assure1.situation_familiale_select_id"), sel("textes.situation_celibataire"));
+        else selectOptionContaining(sel("assure1.situation_familiale_select_id"), sel("textes.situation_marie_contains"));
     }
 
     private void selectOptionContaining(String selectId, String search) {
@@ -244,14 +261,14 @@ public class Ami3fMProService extends BasePlaywrightService implements LaunchedS
     }
 
     private String getPrixTtcParFormule(String formule) {
-        Locator row = page.locator("tr.formule-disponible").filter(
-                new Locator.FilterOptions().setHas(page.locator("td[data-sort-val='libelle']").filter(
+        Locator row = page.locator(sel("resultats.ligne_css")).filter(
+                new Locator.FilterOptions().setHas(page.locator(sel("resultats.libelle_cell_css")).filter(
                         new Locator.FilterOptions().setHasText(formule)
                 ))
         );
 
         if (row.count() > 0) {
-            return row.locator("td.ttc span").innerText().trim();
+            return row.locator(sel("resultats.montant_cell_css")).innerText().trim();
         }
 
         return null;

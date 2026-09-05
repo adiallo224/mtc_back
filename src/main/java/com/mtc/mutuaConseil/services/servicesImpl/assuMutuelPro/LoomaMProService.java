@@ -6,6 +6,8 @@ import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.models.FluxData;
 import com.mtc.mutuaConseil.models.Tarif;
+import com.mtc.mutuaConseil.selectors.SelectorNotFoundException;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
@@ -15,28 +17,30 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 @Service
 public class LoomaMProService extends BasePlaywrightService implements LaunchedService {
 
+    private static final String PROVIDER = "mutuelPro/looma-mp";
+
     private final Logger log = LoggerFactory.getLogger(LoomaMProService.class);
     private final TypeAssuranceService typeAssuranceService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
 
-    private static final Map<String, String> STATUTS = Map.of(
-            "Chef d'entreprise", "1",
-            "Travailleur indépendant", "2",
-            "Profession libérale", "3",
-            "Auto Entrepreneur", "4",
-            "Artisan", "5",
-            "Commercant", "6",
-            "Mandataire non rémunéré", "7",
-            "Agriculteur", "9",
-            "Conjoint collaborateur", "10"
-    );
-
-    public LoomaMProService(TypeAssuranceService typeAssuranceService) {
+    public LoomaMProService(TypeAssuranceService typeAssuranceService, SelectorStore selectors) {
         this.typeAssuranceService = typeAssuranceService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
     }
 
     @Override
@@ -46,12 +50,13 @@ public class LoomaMProService extends BasePlaywrightService implements LaunchedS
 
         try {
             initializeBrowser(false);
-            connexion(c);
-            projet();
-            profil(flux);
-            garantieTarifs(flux);
-            elementLib.clickById("etape-suivante");
+            step("connexion", () -> connexion(c));
+            step("projet", this::projet);
+            step("profil", () -> profil(flux));
+            step("garantie_tarifs", () -> garantieTarifs(flux));
+            elementLib.clickById(sel("navigation.etape_suivante_id"));
             elementLib.randomWait(1500, 2500);
+            currentStep = "lecture_resultats";
             String cout = getPrixByNiveau(3, flux);
             log.info("cout {}", cout);
             tarif.setMontant(cout);
@@ -63,11 +68,11 @@ public class LoomaMProService extends BasePlaywrightService implements LaunchedS
             tarif.setExecution(true);
             log.info("Fin de traitement -- Looma_Mutuel_Pro");
         } catch (Exception e) {
-            log.error("An error occurred", e);
+            log.error("Échec à l'étape '{}'", currentStep, e);
             tarif.setErreur(e.getMessage());
             String screenshotBytesErreur = captureScreenshot(tarif.getNom(), true, tarif);
             tarif.setCaptureImgErreur(screenshotBytesErreur);
-            tarif.setEtape("");
+            tarif.setEtape(currentStep);
         } finally {
             cleanup();
         }
@@ -76,77 +81,83 @@ public class LoomaMProService extends BasePlaywrightService implements LaunchedS
 
     private void connexion(Compte c) {
         humanLikeNavigate(c.getUrlFournisseur());
-        elementLib.humanTypeById("identifiant", c.getUsername());
-        elementLib.humanTypeById("password", c.getPassword());
-        elementLib.clickByXpath("//button[normalize-space()='Se connecter']");
+        elementLib.humanTypeById(sel("connexion.identifiant_id"), c.getUsername());
+        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
+        elementLib.clickByXpath(sel("connexion.connexion_xpath"));
         elementLib.randomWait(1500, 2500);
     }
 
     private void projet() {
-        elementLib.clickByXpath("//span[normalize-space()='Projets']");
+        elementLib.clickByXpath(sel("navigation.projets_xpath"));
         elementLib.randomWait(700, 1300);
-        elementLib.clickByXpath("//a[normalize-space()='Nouveau projet']");
+        elementLib.clickByXpath(sel("navigation.nouveau_projet_xpath"));
         elementLib.randomWait(700, 1300);
-        elementLib.clickByXpath("//img[@alt='TNS']");
+        elementLib.clickByXpath(sel("navigation.tns_xpath"));
         elementLib.randomWait(700, 1300);
     }
 
     private void profil(FluxData flux) {
-        elementLib.humanTypeById("nom", flux.getPersonnes().get(0).getNom());
-        elementLib.humanTypeById("prenom", flux.getPersonnes().get(0).getPrenom());
-        elementLib.humanTypeById("dns", flux.getPersonnes().get(0).getDateNaissance());
+        elementLib.humanTypeById(sel("profil.nom_id"), flux.getPersonnes().get(0).getNom());
+        elementLib.humanTypeById(sel("profil.prenom_id"), flux.getPersonnes().get(0).getPrenom());
+        elementLib.humanTypeById(sel("profil.date_naissance_id"), flux.getPersonnes().get(0).getDateNaissance());
 //        clickBody();
         elementLib.randomWait(700, 1300);
-        elementLib.clickById("profil-client");
+        elementLib.clickById(sel("profil.suivant_id"));
     }
 
     private void garantieTarifs(FluxData flux) {
         // Données projet
         choixRisque();
-        elementLib.humanTypeById("date_effet", dateEffet(1));
+        elementLib.humanTypeById(sel("garantie.date_effet_id"), dateEffet(1));
         // Données personnelles TNS
         choixSituation(flux);
         if (!flux.getEnfants().get(0).getNom().isEmpty()) {
             for (int i = 0; i < flux.getEnfants().size(); i++) {
-                elementLib.clickByXpath("//div[@class='block bt plus']");
+                elementLib.clickByXpath(sel("garantie.ajouter_enfant_xpath"));
             }
         }
-        elementLib.humanTypeById("ad1", flux.getPersonnes().get(0).getNumeroVoie() + " " + flux.getPersonnes().get(0).getNomVoie());
-        elementLib.humanTypeById("ville_nom", flux.getPersonnes().get(0).getVille());
+        elementLib.humanTypeById(sel("garantie.adresse_id"), flux.getPersonnes().get(0).getNumeroVoie() + " " + flux.getPersonnes().get(0).getNomVoie());
+        elementLib.humanTypeById(sel("garantie.ville_id"), flux.getPersonnes().get(0).getVille());
         choisirVilleSuggestion(flux);
         // Données professionnelles TNS
         choixStatut(flux);
-        elementLib.humanTypeById("soc_siret", flux.getEntreprise().getSiret());
-        elementLib.humanTypeById("soc_naf_code", flux.getEntreprise().getCodeAPE());
+        elementLib.humanTypeById(sel("garantie.siret_id"), flux.getEntreprise().getSiret());
+        elementLib.humanTypeById(sel("garantie.code_naf_id"), flux.getEntreprise().getCodeAPE());
         choisirPremiereSuggestionCodeNaf();
     }
 
     private void choixRisque() {
-        elementLib.selectByValue("#risque", "2");
+        elementLib.selectByValue("#" + sel("garantie.risque_select_id"), sel("garantie.risque_valeur"));
     }
 
     private void choixSituation(FluxData flux) {
         if (flux.getPersonnes().size() == 1) {
-            elementLib.selectByValue("#situation_id", "2");
+            elementLib.selectByValue("#" + sel("garantie.situation_select_id"), sel("garantie.situation_seul_valeur"));
         }
         if (flux.getPersonnes().size() == 2) {
-            elementLib.selectByValue("#situation_id", "1");
+            elementLib.selectByValue("#" + sel("garantie.situation_select_id"), sel("garantie.situation_couple_valeur"));
         }
     }
 
     private void choixStatut(FluxData flux) {
-        String valeur = STATUTS.get(flux.getPersonnes().get(0).getProfessionSpecifique());
+        String profession = flux.getPersonnes().get(0).getProfessionSpecifique();
+        String valeur;
+        try {
+            valeur = sel("statuts." + profession);
+        } catch (SelectorNotFoundException e) {
+            valeur = null;
+        }
         if (valeur != null) {
-            elementLib.selectByValue("#statut_id", valeur);
+            elementLib.selectByValue("#" + sel("garantie.statut_select_id"), valeur);
         } else {
-            log.warn("Statut professionnel non reconnu : {}", flux.getPersonnes().get(0).getProfessionSpecifique());
+            log.warn("Statut professionnel non reconnu : {}", profession);
         }
     }
 
     private void choisirVilleSuggestion(FluxData flux) {
-        Locator suggestionsContainer = page.locator("#ui-id-2");
+        Locator suggestionsContainer = page.locator(sel("garantie.ville_suggestions_container_id"));
         suggestionsContainer.waitFor(new Locator.WaitForOptions().setTimeout(10000));
-        Locator suggestions = suggestionsContainer.locator(".ui-menu-item-wrapper");
+        Locator suggestions = suggestionsContainer.locator(sel("garantie.ville_suggestion_item_css"));
         String codePostal = flux.getPersonnes().get(0).getCodePostal();
         String ville = flux.getPersonnes().get(0).getVille().toUpperCase();
         int count = suggestions.count();
@@ -161,9 +172,9 @@ public class LoomaMProService extends BasePlaywrightService implements LaunchedS
     }
 
     private void choisirPremiereSuggestionCodeNaf() {
-        Locator suggestionsContainer = page.locator("#ui-id-3");
+        Locator suggestionsContainer = page.locator(sel("garantie.naf_suggestions_container_id"));
         suggestionsContainer.waitFor(new Locator.WaitForOptions().setTimeout(10000));
-        suggestionsContainer.locator(".ui-menu-item-wrapper").first().click();
+        suggestionsContainer.locator(sel("garantie.naf_suggestion_item_css")).first().click();
     }
 
     private String dateEffet(int mois) {
@@ -173,12 +184,13 @@ public class LoomaMProService extends BasePlaywrightService implements LaunchedS
     }
 
     public String getPrixByNiveau(int niveau, FluxData flux) {
+
         String structure = getStructure(flux);
 
-        Locator ligne = page.locator("tbody tr")
+        Locator ligne = page.locator(sel("resultats.lignes_css"))
                 .filter(new Locator.FilterOptions().setHasText(structure));
 
-        return ligne.locator("td.niveau" + niveau)
+        return ligne.locator(String.format(sel("resultats.cellule_niveau_template"), niveau))
                 .textContent()
                 .trim();
     }

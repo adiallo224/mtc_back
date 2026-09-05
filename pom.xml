@@ -139,6 +139,12 @@
 			<version>1.47.0</version>
 		</dependency>
 
+		<!-- Chargement des fichiers de sélecteurs externes (SelectorStore) -->
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>

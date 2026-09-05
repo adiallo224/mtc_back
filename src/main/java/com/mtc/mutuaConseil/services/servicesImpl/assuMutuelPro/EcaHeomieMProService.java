@@ -9,6 +9,7 @@ import com.mtc.mutuaConseil.models.FluxData;
 import com.mtc.mutuaConseil.models.Tarif;
 import com.mtc.mutuaConseil.models.TypeAssurance;
 import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
@@ -25,11 +26,26 @@ import static java.util.Objects.nonNull;
 @Service
 public class EcaHeomieMProService extends BasePlaywrightService implements LaunchedService {
 
+    private static final String PROVIDER = "mutuelPro/ecaheomie-mp";
+
     private final Logger log = LoggerFactory.getLogger(EcaHeomieMProService.class);
     private final TypeAssuranceService typeAssuranceService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
 
-    public EcaHeomieMProService(TypeAssuranceService typeAssuranceService) {
+    public EcaHeomieMProService(TypeAssuranceService typeAssuranceService, SelectorStore selectors) {
         this.typeAssuranceService = typeAssuranceService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
     }
 
     @Override
@@ -45,17 +61,18 @@ public class EcaHeomieMProService extends BasePlaywrightService implements Launc
         try {
             initializeBrowser(false);
             humanLikeNavigate(c.getUrlFournisseur());
-            connexion(c);
-            choixComplementaire();
-            remplirBesoins(flux);
-            remplirSituationProfessionnelle(flux);
-            remplirSituationPersonnelle(flux);
-            suivant();
+            step("connexion", () -> connexion(c));
+            step("navigation", this::choixComplementaire);
+            step("besoins", () -> remplirBesoins(flux));
+            step("situation_professionnelle", () -> remplirSituationProfessionnelle(flux));
+            step("situation_personnelle", () -> remplirSituationPersonnelle(flux));
+            step("calcul", this::suivant);
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(4000, 6000);
-            choixFormule(2);
+            step("choix_formule", () -> choixFormule(2));
             scrollDown(300);
-            String cout = elementLib.getElementTextByXpath("//*[@id='panelsStayOpen-collapseOne']/div/div[2]/div[1]/div[1]/div[3]/strong/span");
+            currentStep = "lecture_resultats";
+            String cout = elementLib.getElementTextByXpath(sel("resultats.cout_xpath"));
             log.info("cout {}", cout);
             tarif.setMontant(cout);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
@@ -64,11 +81,11 @@ public class EcaHeomieMProService extends BasePlaywrightService implements Launc
             }
             tarif.setExecution(true);
         } catch (Exception e) {
-            log.error("An error occurred", e);
+            log.error("Échec à l'étape '{}'", currentStep, e);
             tarif.setErreur(e.getMessage());
             String screenshotPath = captureScreenshot(tarif.getNom(), true, tarif);
             tarif.setCaptureImgErreur(screenshotPath);
-            tarif.setEtape("");
+            tarif.setEtape(currentStep);
         } finally {
             cleanup();
         }
@@ -79,26 +96,26 @@ public class EcaHeomieMProService extends BasePlaywrightService implements Launc
         if (niveau < 1 || niveau > 5) {
             throw new IllegalArgumentException("Le niveau doit être compris entre 1 et 5.");
         }
-        String value = "DIRECT_" + (niveau * 100);
-        page.locator("#formule_choisie_miltis").selectOption(value);
+        String value = String.format(sel("formule.valeur_template"), niveau * 100);
+        page.locator("#" + sel("formule.select_id")).selectOption(value);
     }
 
     private void connexion(Compte c) {
-        elementLib.humanTypeById("login-name", c.getUsername());
-        elementLib.humanTypeById("login-password", c.getPassword());
-        elementLib.clickByXpath("//form//button[@type='submit']");
+        elementLib.humanTypeById(sel("connexion.login_id"), c.getUsername());
+        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
+        elementLib.clickByXpath(sel("connexion.submit_xpath"));
         elementLib.randomWait(700, 1300);
     }
 
     private void choixComplementaire() {
-        elementLib.clickByXpath("//a[@href='https://partenaire.heomi.fr/nouveau-devis/entreprise']");
+        elementLib.clickByXpath(sel("navigation.nouveau_devis_entreprise_xpath"));
         elementLib.randomWait(700, 1300);
-        elementLib.clickByXpath("//a[@href='https://partenaire.heomi.fr/entreprise/tns/presentation/SANTE_TNS']");
+        elementLib.clickByXpath(sel("navigation.presentation_sante_tns_xpath"));
     }
 
     private void remplirBesoins(FluxData flux) {
         elementLib.randomWait(700, 1300);
-        elementLib.humanTypeById("date_effet_sante", dateEffet(1));
+        elementLib.humanTypeById(sel("contrat.date_effet_id"), dateEffet(1));
         elementLib.scrollDown(400);
     }
 
@@ -110,43 +127,43 @@ public class EcaHeomieMProService extends BasePlaywrightService implements Launc
     }
 
     private void remplirSituationPersonnelle(FluxData flux) {
-        elementLib.typeById("dn_assure", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.typeById(sel("contrat.date_naissance_assure_id"), flux.getPersonnes().getFirst().getDateNaissance());
         if (flux.getPersonnes().size() == 2) {
-            elementLib.clickById("has_conjoint-0");
+            elementLib.clickById(sel("contrat.has_conjoint_checkbox_id"));
             elementLib.randomWait(700, 1300);
-            elementLib.humanTypeById("dn_conjoint", flux.getPersonnes().get(1).getDateNaissance());
+            elementLib.humanTypeById(sel("contrat.date_naissance_conjoint_id"), flux.getPersonnes().get(1).getDateNaissance());
         }
         choixNbEnfants(flux);
         remplirEnfant(flux);
-        elementLib.typeById("code_postal", flux.getPersonnes().getFirst().getCodePostal());
+        elementLib.typeById(sel("contrat.code_postal_id"), flux.getPersonnes().getFirst().getCodePostal());
         scrollDown(400);
-        elementLib.clickById("soins_generaux_faible");
-        elementLib.clickById("hospitalisation_faible");
+        elementLib.clickById(sel("contrat.soins_generaux_faible_id"));
+        elementLib.clickById(sel("contrat.hospitalisation_faible_id"));
         scrollDown(150);
-        elementLib.clickById("optique_faible");
+        elementLib.clickById(sel("contrat.optique_faible_id"));
         scrollDown(250);
-        elementLib.clickById("dentaire_faible");
-        elementLib.clickById("appareil_auditif_tns_faible");
-        elementLib.clickById("medecines_douces_tns_non");
+        elementLib.clickById(sel("contrat.dentaire_faible_id"));
+        elementLib.clickById(sel("contrat.appareil_auditif_tns_faible_id"));
+        elementLib.clickById(sel("contrat.medecines_douces_tns_non_id"));
     }
 
     private void remplirEnfant(FluxData flux) {
         if (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty()) {
-            elementLib.humanTypeById("dn_enfant_0", flux.getEnfants().getFirst().getDateNaissance());
+            elementLib.humanTypeById(sel("contrat.date_naissance_enfant0_id"), flux.getEnfants().getFirst().getDateNaissance());
         }
         if (flux.getEnfants().size() >= 2) {
-            elementLib.humanTypeById("dn_enfant_1", flux.getEnfants().get(1).getDateNaissance());
+            elementLib.humanTypeById(sel("contrat.date_naissance_enfant1_id"), flux.getEnfants().get(1).getDateNaissance());
         }
     }
 
     private void choixNbEnfants(FluxData flux) {
         boolean sansEnfant = flux.getEnfants().getFirst().getNom() == null || flux.getEnfants().getFirst().getNom().isEmpty();
         int nbEnfants = sansEnfant ? 0 : flux.getEnfants().size();
-        elementLib.selectByLabel("#nbr_enfants", String.valueOf(nbEnfants));
+        elementLib.selectByLabel("#" + sel("contrat.nb_enfants_select_id"), String.valueOf(nbEnfants));
     }
 
     private void suivant() {
-        elementLib.clickByTextElement("étape suivante");
+        elementLib.clickByTextElement(sel("navigation.etape_suivante_text"));
     }
 
     private String dateEffet(int mois) {
@@ -156,10 +173,10 @@ public class EcaHeomieMProService extends BasePlaywrightService implements Launc
     }
 
     private void choixProfession(FluxData flux) {
-        elementLib.clickByXpath("//span[@data-select2-id='1']");
+        elementLib.clickByXpath(sel("profession.dropdown_xpath"));
         elementLib.randomWait(700, 1300);
         String profession = flux.getPersonnes().getFirst().getProfession();
-        elementLib.humanTypeByXpath("//input[@aria-controls='select2-profession-results']", profession);
+        elementLib.humanTypeByXpath(sel("profession.search_input_xpath"), profession);
         /*
         String professionSite = switch (profession.toLowerCase().trim()) {
             case "agent d'assurances" -> "Agent d'assurance";
@@ -254,31 +271,31 @@ public class EcaHeomieMProService extends BasePlaywrightService implements Launc
             default -> "Agent d'assurance";
         };
         */
-        page.locator("#select2-profession-results li").first().click();
+        page.locator(sel("profession.first_result_css")).first().click();
 
     }
 
     private void choixStatut(FluxData flux) {
-        elementLib.clickByXpath("//select[@id='statut']");
+        elementLib.clickByXpath(sel("statut.select_xpath"));
         elementLib.randomWait(700, 1300);
         String statutSource = flux.getPersonnes().getFirst().getProfessionSpecifique();
 
-        String value = switch (statutSource.toUpperCase()) {
-            case "ARTISAN" -> "INDEPENDANT_ARTISAN";
-            case "CHEF_ENTREPRISE" -> "MANDATAIRE_SOCIAL";
+        String cle = switch (statutSource.toUpperCase()) {
+            case "ARTISAN" -> "artisan";
+            case "CHEF_ENTREPRISE" -> "chef_entreprise";
             case "COMMERCANT",
                  "PROF_LIB",
                  "MEDICAL_PROF",
                  "PARAMEDICAL_PROF",
-                 "AGRICULTEUR" -> "AUTO_ENTREPRENEUR";
-            default -> "ARTISAN";
+                 "AGRICULTEUR" -> "auto_entrepreneur";
+            default -> "defaut";
         };
-        page.locator("#statut").selectOption(value);
+        page.locator("#" + sel("statut.select_id")).selectOption(sel("statut." + cle));
     }
 
     private void choixRegime() {
-        page.locator("#regime").selectOption(
-                new SelectOption().setLabel("SSI / Régime général")
+        page.locator("#" + sel("regime.select_id")).selectOption(
+                new SelectOption().setLabel(sel("regime.valeur"))
         );
     }
 

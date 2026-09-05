@@ -1,0 +1,64 @@
+# Sélecteurs pour Alptis - Mutuelle Individuelle (assuMutuelIndiv/AlptisMIService)
+# Modifie ce fichier quand le site Alptis change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  cookie_dismiss_id: axeptio_btn_dismiss
+  username_id: username
+  password_id: password
+  login_button_selector: "[name='login']"
+
+navigation:
+  sante_individuelle_xpath: "//span[text()='Santé individuelle']"
+  acceder_comparateur_xpath: "//span[normalize-space()='Accéder au comparateur']"
+
+contrat:
+  who_me_partner_children_xpath: "//label[@for='who_me_partner_children']"
+  who_me_partner_xpath: "//label[@for='who_me_partner']"
+  who_me_children_xpath: "//label[@for='who_me_children']"
+  who_me_xpath: "//label[@for='who_me']"
+  contract_replacement_false_xpath: "//label[@for='contractReplacement_false']"
+  start_date_id: startDate
+
+adherent:
+  title_monsieur_xpath: "//label[@for='insured_title_monsieur']"
+  title_madame_xpath: "//label[@for='insured_title_madame']"
+  lastname_id: insured_lastname
+  firstname_id: insured_firstname
+  birthdate_id: birthdate
+  category_select_id: insured_category_select
+  regime_select_id: insured_regime
+  postal_code_id: postalCode
+
+conjoint:
+  birthdate_id: partner-birthdate
+  category_select_id: partner_category_select
+  regime_select_id: partner_regime
+
+enfant:
+  ajouter_xpath: "//*[@id='children_count']/button[2]"
+  enfant0_birthdate_id: child_0_birthdate
+  enfant1_birthdate_id: child_1_birthdate
+
+recherche:
+  decouvrir_offres_xpath: "//button[normalize-space(text())='Découvrir les offres']"
+  voir_plus_label: "Voir plus d'offres"
+
+regime:
+  valeur: "Sécurité Sociale"
+
+# Libellés exacts des options du menu déroulant "catégorie socio-professionnelle" sur le site.
+categorie_socio_pro:
+  agriculteur: "Agriculteurs exploitants"
+  artisan: "Artisans"
+  cadre: "Cadres"
+  chef_entreprise: "Chefs d'entreprise"
+  commercant: "Commerçants et assimilés"
+  employe: "Employés, agents de maitrise"
+  ouvrier: "Ouvriers"
+  liberale: "Professions libérales et assimilés"
+  retraite: "Retraités"
+
+resultats:
+  # %d est remplacé par le numéro de niveau (1 à 4) dans le code
+  prix_selector_template: ".pc-offer-check:has(small:text-is('Niveau %d'))"

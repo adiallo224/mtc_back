@@ -7,6 +7,7 @@ import com.mtc.mutuaConseil.models.FluxData;
 import com.mtc.mutuaConseil.models.Tarif;
 import com.mtc.mutuaConseil.models.TypeAssurance;
 import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
@@ -21,11 +22,26 @@ import java.util.List;
 @Service
 public class EcaHeomieMlService extends BasePlaywrightService implements LaunchedService {
 
+    private static final String PROVIDER = "mutuelIndiv/ecaheomie-mi";
+
     private final Logger log = LoggerFactory.getLogger(EcaHeomieMlService.class);
     private final TypeAssuranceService typeAssuranceService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
 
-    public EcaHeomieMlService(TypeAssuranceService typeAssuranceService) {
+    public EcaHeomieMlService(TypeAssuranceService typeAssuranceService, SelectorStore selectors) {
         this.typeAssuranceService = typeAssuranceService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
     }
 
     @Override
@@ -41,14 +57,15 @@ public class EcaHeomieMlService extends BasePlaywrightService implements Launche
         try {
             initializeBrowser(false);
             humanLikeNavigate(c.getUrlFournisseur());
-            connexion(c);
-            choixComplementaire();
-            remplirComplementaireSante(flux);
+            step("connexion", () -> connexion(c));
+            step("navigation", this::choixComplementaire);
+            step("complementaire_sante", () -> remplirComplementaireSante(flux));
             scrollDown(350);
-            suivant();
+            step("calcul", this::suivant);
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(4000, 6000);
-            String cout = elementLib.getElementTextByXpath("//*[@id='tarif_sante_OPTION_BUDGET_150_B']");
+            currentStep = "lecture_resultats";
+            String cout = elementLib.getElementTextByXpath(sel("resultats.cout_xpath"));
             log.info("cout {}", cout);
             tarif.setMontant(List.of(cout));
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
@@ -57,11 +74,11 @@ public class EcaHeomieMlService extends BasePlaywrightService implements Launche
             }
             tarif.setExecution(true);
         } catch (Exception e) {
-            log.error("An error occurred", e);
+            log.error("Échec à l'étape '{}'", currentStep, e);
             tarif.setErreur(e.getMessage());
             String screenshotPath = captureScreenshot(tarif.getNom(), true, tarif);
             tarif.setCaptureImgErreur(screenshotPath);
-            tarif.setEtape("");
+            tarif.setEtape(currentStep);
         } finally {
             cleanup();
         }
@@ -69,57 +86,57 @@ public class EcaHeomieMlService extends BasePlaywrightService implements Launche
     }
 
     private void connexion(Compte c) {
-        elementLib.humanTypeById("login-name", c.getUsername());
-        elementLib.humanTypeById("login-password", c.getPassword());
-        elementLib.clickByXpath("//form//button[@type='submit']");
+        elementLib.humanTypeById(sel("connexion.login_id"), c.getUsername());
+        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
+        elementLib.clickByXpath(sel("connexion.submit_xpath"));
         elementLib.randomWait(700, 1300);
     }
 
     private void choixComplementaire() {
-        elementLib.clickByXpath("//a[@href='https://partenaire.heomi.fr/nouveau-devis/particulier']");
+        elementLib.clickByXpath(sel("navigation.nouveau_devis_particulier_xpath"));
         elementLib.randomWait(700, 1300);
-        elementLib.clickByXpath("//a[@href='https://partenaire.heomi.fr/particulier/presentation/SANTE']");
+        elementLib.clickByXpath(sel("navigation.presentation_sante_xpath"));
         scrollDown(350);
-        elementLib.clickByXpath("//a[@href='https://partenaire.heomi.fr/particulier/nouveauDevis/SANTE']");
+        elementLib.clickByXpath(sel("navigation.nouveau_devis_sante_xpath"));
     }
 
     private void remplirComplementaireSante(FluxData flux) {
-        elementLib.humanTypeById("date_effet_sante", dateEffet(1));
+        elementLib.humanTypeById(sel("contrat.date_effet_id"), dateEffet(1));
         choixRegime(flux, 0);
-        elementLib.humanTypeById("dn_assure", flux.getPersonnes().getFirst().getDateNaissance());
+        elementLib.humanTypeById(sel("contrat.date_naissance_assure_id"), flux.getPersonnes().getFirst().getDateNaissance());
 
         if (flux.getPersonnes().size() == 2) {
-            elementLib.clickById("has_conjoint_sante-0");
+            elementLib.clickById(sel("contrat.has_conjoint_checkbox_id"));
             elementLib.randomWait(700, 1300);
-            elementLib.humanTypeById("dn_conjoint", flux.getPersonnes().get(1).getDateNaissance());
+            elementLib.humanTypeById(sel("contrat.date_naissance_conjoint_id"), flux.getPersonnes().get(1).getDateNaissance());
         }
-        elementLib.humanTypeById("code_postal", flux.getPersonnes().getFirst().getCodePostal());
+        elementLib.humanTypeById(sel("contrat.code_postal_id"), flux.getPersonnes().getFirst().getCodePostal());
 
         choixNbEnfants(flux);
         remplirEnfant(flux);
         scrollDown(400);
 
-        elementLib.clickById("budget_entre_50_100");
-        elementLib.clickById("couverture_sante_non");
-        elementLib.clickById("beneficiaire_css_non");
+        elementLib.clickById(sel("contrat.budget_id"));
+        elementLib.clickById(sel("contrat.couverture_sante_non_id"));
+        elementLib.clickById(sel("contrat.beneficiaire_css_non_id"));
         scrollDown(150);
-        elementLib.clickById("soins_generaux_faible");
-        elementLib.clickById("hospitalisation_faible");
+        elementLib.clickById(sel("contrat.soins_generaux_faible_id"));
+        elementLib.clickById(sel("contrat.hospitalisation_faible_id"));
         scrollDown(150);
-        elementLib.clickById("optique_faible");
+        elementLib.clickById(sel("contrat.optique_faible_id"));
         scrollDown(250);
-        elementLib.clickById("dentaire_faible");
-        elementLib.clickById("appareil_auditif_faible");
-        elementLib.clickById("medecines_douces_non");
+        elementLib.clickById(sel("contrat.dentaire_faible_id"));
+        elementLib.clickById(sel("contrat.appareil_auditif_faible_id"));
+        elementLib.clickById(sel("contrat.medecines_douces_non_id"));
     }
 
     private void remplirEnfant(FluxData flux) {
         if (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty()) {
-            elementLib.humanTypeById("dn_enfant_sante_1", flux.getEnfants().getFirst().getDateNaissance());
+            elementLib.humanTypeById(sel("contrat.date_naissance_enfant1_id"), flux.getEnfants().getFirst().getDateNaissance());
             scrollDown(100);
         }
         if (flux.getEnfants().size() >= 2) {
-            elementLib.humanTypeById("dn_enfant_sante_2", flux.getEnfants().get(1).getDateNaissance());
+            elementLib.humanTypeById(sel("contrat.date_naissance_enfant2_id"), flux.getEnfants().get(1).getDateNaissance());
             scrollDown(400);
         }
     }
@@ -127,15 +144,15 @@ public class EcaHeomieMlService extends BasePlaywrightService implements Launche
     private void choixNbEnfants(FluxData flux) {
         boolean sansEnfant = flux.getEnfants().getFirst().getNom() == null || flux.getEnfants().getFirst().getNom().isEmpty();
         int nbEnfants = sansEnfant ? 0 : flux.getEnfants().size();
-        elementLib.selectByLabel("#nbr_enfants_sante", String.valueOf(nbEnfants));
+        elementLib.selectByLabel("#" + sel("contrat.nb_enfants_select_id"), String.valueOf(nbEnfants));
     }
 
     private void suivant() {
-        elementLib.clickByXpath("//*[@id='calculer_tarif']");
+        elementLib.clickByXpath(sel("navigation.calculer_tarif_xpath"));
     }
 
     private void choixRegime(FluxData flux, int index) {
-        elementLib.selectByLabel("#regime_social_sante", "Régime Général");
+        elementLib.selectByLabel("#" + sel("contrat.regime_select_id"), sel("contrat.regime_valeur"));
     }
 
     private String dateEffet(int mois) {

@@ -1,0 +1,58 @@
+# Sélecteurs pour Henner - Mutuelle Pro / TNS (assuMutuelPro/HennerMProService)
+# Site en Angular Material : XPath absolus fragiles, sujets à casser souvent -- vérifier
+# celui-ci en premier si le scraping Henner Pro échoue. Parcours TNS différent de la
+# mutuelle individuelle (cf. selectors/mutuelIndiv/henner-mi.yml).
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  accept_cookies_label: "TOUT ACCEPTER"
+  username_id: mat-input-0
+  password_id: mat-input-1
+  connexion_text: "Se connecter"
+
+navigation:
+  creation_devis_selector: "a[title=\"Création d'un devis\"]"
+  tns_xpath: "//span[normalize-space()='TNS']"
+  sante_text: "Santé"
+  tarifer_text: "TARIFER"
+
+contrat:
+  date_naissance_xpath: "//input[@data-placeholder='Date de naissance']"
+  code_postal_label: "Code postal"
+  nom_label: "Nom (facultatif)"
+  prenom_label: "Prénom (facultatif)"
+  valider_label: "VALIDER"
+
+statut:
+  dropdown_xpath: "//mat-form-field[.//label[contains(normalize-space(.), 'Statut')]]//mat-select[@role='combobox']"
+  options_xpath: "//div[@role='listbox']//mat-option[@role='option']"
+  auto_entrepreneur_libelle: "Auto-entrepreneur dépendant des régimes micro-BNC ou micro-BIC"
+  # Libellés exacts des options du menu déroulant "Statut" selon la profession de l'assuré
+  libelle_agriculteur: "Exploitant agricole"
+  libelle_artisan_commercant_ouvrier: "Artisan ou commerçant soumis à l’impôt sur le bénéfice industriel et commercial (BIC)"
+  libelle_chef_entreprise: "Gérant non-salarié d’une EURL, SARL ou SELARL relevant de l’article 62 du CGI"
+  libelle_profession_liberale: "Professionnel libéral soumis à l’impôt sur le bénéfice non commercial (BNC)"
+  libelle_salarie_cadre: "Mandataire social assimilé à un salarié"
+
+devis_sante:
+  date_effet_xpath: "//input[@data-placeholder=\"Date d'effet\"]"
+  regime_options_xpath: "//div[@role='listbox']//mat-option[@role='option']"
+  regime_valeur: "Régime Général"
+  ajouter_conjoint_text: "Ajouter un conjoint"
+  ajouter_enfant_text: "Ajouter un enfant"
+  conjoint_date_naissance_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input"
+  conjoint_regime_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span"
+  # NB: le code ne clique en réalité jamais sur le régime enfant côté Pro (paramètre reçu mais inutilisé
+  # dans remplirEnfant) -- comportement d'origine préservé tel quel, clés gardées pour la signature.
+  enfant1_date_naissance_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[1]/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input"
+  enfant1_regime_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[1]/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span"
+  enfant2_date_naissance_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[2]/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input"
+  enfant2_regime_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[2]/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span"
+
+resultats:
+  formule_active_css: ".henner-bar.active"
+  formule_active_ancestor_xpath: "ancestor::div[contains(@class,'indiv-pricing--content--bloc-item')]"
+  formule_active_montant_css: ".indiv-pricing--content--bloc-item-element-top--price-amount"
+  formule_label_css: ".indiv-pricing--content--bloc-item-element-levels-label"
+  # NB: "Fomule" (sans le 2e "r") -- typo présente dans le code source d'origine, préservée telle quelle
+  formule_recherchee_prefixe: "Fomule "
