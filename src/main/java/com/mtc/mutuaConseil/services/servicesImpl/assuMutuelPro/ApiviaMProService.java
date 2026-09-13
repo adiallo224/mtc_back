@@ -102,7 +102,7 @@ public class ApiviaMProService extends BasePlaywrightService implements Launched
     }
 
     private void remplirTarificateur() {
-        elementLib.clickByXpath(sel("navigation.particulier_individuel_xpath"));
+        elementLib.humanClick(sel("navigation.particulier_individuel_xpath"));
         elementLib.randomWait(700, 1300);
     }
 

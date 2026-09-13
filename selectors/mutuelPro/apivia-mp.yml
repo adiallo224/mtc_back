@@ -10,7 +10,7 @@ connexion:
 
 navigation:
   nos_offres_text: "Nos offres"
-  particulier_individuel_xpath: "//div[@data-type='particulier individuel']"
+  particulier_individuel_xpath: "//div[@data-test='santé - individuelle']//a[@data-test='new']"
 
 devoir_conseil:
   checkbox_id: tarification_recueilBesoins_0

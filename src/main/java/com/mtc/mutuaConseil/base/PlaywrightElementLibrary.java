@@ -214,7 +214,7 @@ public class PlaywrightElementLibrary {
         field.click();
         field.clear();
         for (char c : text.toCharArray()) {
-            field.press(String.valueOf(c));
+            field.pressSequentially(String.valueOf(c));
             randomWait(50, 150);
         }
     }
