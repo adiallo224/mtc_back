@@ -1,210 +1,196 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
 
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
+import com.microsoft.playwright.options.LoadState;
+import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.models.FluxData;
 import com.mtc.mutuaConseil.models.Tarif;
+import com.mtc.mutuaConseil.models.TypeAssurance;
+import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
+import com.mtc.mutuaConseil.services.servicesImpl.AuthenticatorService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
-import com.mtc.mutuaConseil.utils.InformationsPersonne;
-import com.mtc.mutuaConseil.utils.PageElementInteraction;
 import com.mtc.mutuaConseil.utils.TarifUtils;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.edge.EdgeDriver;
-import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.ui.Select;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
-public class ApicilMIService extends PageElementInteraction implements LaunchedService {
+public class ApicilMIService extends BasePlaywrightService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(ApicilMIService.class);
-    public static WebDriver driver;
-    private final String source = "ApicilMutuelIndivService";
-    private static Actions actions;
+    private static final String PROVIDER = "mutuelIndiv/apicil-mi";
+
     private final TypeAssuranceService typeAssuranceService;
+    private final AuthenticatorService authenticatorService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
 
-    public ApicilMIService(TypeAssuranceService typeAssuranceService){
+    public ApicilMIService(TypeAssuranceService typeAssuranceService,
+                           AuthenticatorService authenticatorService,
+                           SelectorStore selectors) {
         this.typeAssuranceService = typeAssuranceService;
+        this.authenticatorService = authenticatorService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
     }
 
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
-        Tarif tarifApicilMutuelIndiv = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);;
-        tarifApicilMutuelIndiv.setNom(c.getNomFournisseur());
-        driver = new EdgeDriver();
-        driver.manage().window().maximize();
-        actions = new Actions(driver);
+        log.info("Début de traitement -- Apicil_Mutuel_Indiv (Playwright)");
+
+        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);
+        tarif.setNom(c.getNomFournisseur());
+        TypeAssurance typeAssurance = new TypeAssurance();
+        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_INDIV);
+        tarif.setTypeAssurance(typeAssurance);
+
         try {
-            connexion(c);
-            remplirContrat(flux);
-            remplirIdentite(flux);
-            remplirCoordonnees(flux);
-            remplirCouverture();
-            scrollDown(driver, 0, 300);
-            suivant();
-            waitThread(7);
-            WebElement sectionPrix = waitForElement(driver, By.xpath("//*[@id='formInfoChoixCotisation']/div/table/tbody/tr[2]/td[4]"), 10, 1);
-            String cout = sectionPrix.getText();
-            log.info("cout {}", cout);
-            tarifApicilMutuelIndiv.setMontant(cout);
-            String screenshotBytes = captureScreenshot(driver, tarifApicilMutuelIndiv.getNom(), false, tarifApicilMutuelIndiv);
-            if (screenshotBytes != null) {
-                tarifApicilMutuelIndiv.setCaptureImg(screenshotBytes);
+            initializeBrowser(false);
+            humanLikeNavigate(c.getUrlFournisseur());
+            step("connexion", () -> connexion(c));
+            step("totp", () -> saisirCodeAuthenticator(c));
+            step("nouveau_projet", this::nouveauProjet);
+            step("identite", () -> remplirIdentite(flux));
+            step("coordonnees", () -> remplirCoordonnees(flux));
+            step("tarification", this::remplirTarification);
+            step("beneficiaires", () -> remplirBeneficiaires(flux));
+            step("suivant_resultats", this::suivant);
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            elementLib.randomWait(4000, 6000);
+            currentStep = "lecture_resultats";
+            List<String> couts = prixParLibelle(sel("resultats.ligne_template"), sel("resultats.formules"));
+            log.info("couts (formules) {}", couts);
+            tarif.setMontant(couts);
+            String screenshotPath = captureScreenshot(tarif.getNom(), false, tarif);
+            if (screenshotPath != null) {
+                tarif.setCaptureImg(screenshotPath);
             }
-            tarifApicilMutuelIndiv.setExecution(true);
+            tarif.setExecution(true);
         } catch (Exception e) {
-            log.error("An error occurred", e);
-            tarifApicilMutuelIndiv.setErreur(e.getMessage());
-            String screenshotBytesErreur = captureScreenshot(driver, tarifApicilMutuelIndiv.getNom(), true, tarifApicilMutuelIndiv);
-            tarifApicilMutuelIndiv.setCaptureImgErreur(screenshotBytesErreur);
-            tarifApicilMutuelIndiv.setEtape("");
+            log.error("Échec à l'étape '{}'", currentStep, e);
+            tarif.setErreur(e.getMessage());
+            String screenshotPath = captureScreenshot(tarif.getNom(), true, tarif);
+            tarif.setCaptureImgErreur(screenshotPath);
+            tarif.setEtape(currentStep);
         } finally {
-            driver.quit();
+            cleanup();
         }
-        return tarifApicilMutuelIndiv;
+        return tarif;
     }
 
-    public void connexion(Compte c) {
-        driver.get(c.getUrlFournisseur());
-        WebElement buttonCookies = waitForElement(driver, By.xpath("//div[@id=\"CybotCookiebotDialogBodyButtonsWrapper\"]//button[@id=\"CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll\"]"), 10, 1);
-        buttonCookies.click();
-        WebElement inputLogin = waitForElement(driver, By.xpath("//div[@id=\"sfdc_username_container\"]//input"), 10, 1);
-        inputLogin.sendKeys(c.getUsername());
-        WebElement inputPassword = waitForElement(driver, By.xpath("//div[@id=\"sfdc_password_container\"]//input"), 10, 1);
-        inputPassword.sendKeys(c.getPassword());
-        WebElement buttonLogin = waitForElement(driver, By.xpath("//div[@class=\"salesforceIdentityLoginForm2\"]//button"), 10, 1);
-        buttonLogin.click();
+    private void connexion(Compte c) {
+        elementLib.randomWait(2500, 4500);
+        clickIfExists(sel("connexion.cookie_accept_selector"));
+        elementLib.typeHumanLike(sel("connexion.username_selector"), c.getUsername());
+        elementLib.typeHumanLike(sel("connexion.password_selector"), c.getPassword());
+        elementLib.randomWait(700, 1300);
+        elementLib.click(sel("connexion.login_button_selector"));
     }
 
-    private void remplirContrat(FluxData flux) {
-        WebElement inputDateEffet = waitForElement(driver, By.id("DateEffetSouhaitee"), 10, 1);
-        inputDateEffet.sendKeys(dateEffet(1));
+    /** Code Authenticator généré à partir du secret TOTP stocké dans le compte (authKeyQrCode). */
+    private void saisirCodeAuthenticator(Compte c) {
+        Locator champ = page.locator(sel("totp.input_selector")).first();
+        try {
+            champ.waitFor(new Locator.WaitForOptions().setTimeout(15_000));
+        } catch (Exception e) {
+            log.info("Pas de demande de code Authenticator");
+            return;
+        }
+        if (c.getAuthKeyQrCode() == null || c.getAuthKeyQrCode().isBlank()) {
+            throw new IllegalStateException("Code Authenticator demandé mais aucun secret TOTP (authKeyQrCode) sur le compte");
+        }
+        String code = authenticatorService.getTOTPCode(c.getAuthKeyQrCode());
+        elementLib.typeHumanLike(sel("totp.input_selector"), code);
+        elementLib.randomWait(700, 1300);
+        elementLib.clickByRole(sel("totp.valider_label"));
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+    }
+
+    private void nouveauProjet() {
+        elementLib.randomWait(1500, 2500);
+        elementLib.clickByTextElement(sel("navigation.nouveau_projet_text"));
+        elementLib.randomWait(1500, 2500);
+        // « Les particuliers » est sélectionné par défaut : on le (re)clique si présent puis Suivant
+        clickIfExists("text=" + sel("projet.particuliers_text"));
+        suivant();
     }
 
     private void remplirIdentite(FluxData flux) {
-        choixCivilite(flux, 0);
-        WebElement inputNom = waitForElement(driver, By.id("NomSouscripteur"), 10, 1);
-        inputNom.sendKeys(flux.getPersonnes().get(0).getNom());
-        WebElement inputPrenom = waitForElement(driver, By.id("PrenomSouscripteur"), 10, 1);
-        inputPrenom.sendKeys(flux.getPersonnes().get(0).getPrenom());
-        WebElement inputDateNaissanceSouscripteur = waitForElement(driver, By.id("DateNaissanceSouscripteur"), 10, 1);
-        inputDateNaissanceSouscripteur.sendKeys(flux.getPersonnes().get(0).getDateNaissance());
-        choixRegime(flux, 0);
+        elementLib.randomWait(1000, 2000);
+        elementLib.typeByLabel(sel("projet.nom_label"), flux.getPersonnes().getFirst().getNom());
+        elementLib.typeByLabel(sel("projet.prenom_label"), flux.getPersonnes().getFirst().getPrenom());
+        elementLib.typeByLabel(sel("projet.date_naissance_label"), flux.getPersonnes().getFirst().getDateNaissance());
+        suivant();
     }
 
     private void remplirCoordonnees(FluxData flux) {
-        WebElement inputAdresse = waitForElement(driver, By.id("AdresseSouscripteur"), 10, 1);
-        inputAdresse.sendKeys(flux.getPersonnes().get(0).getNumeroVoie() + " " + flux.getPersonnes().get(0).getNomVoie());
-        WebElement inputCodePostal = waitForElement(driver, By.id("CodePostalSouscripteur"), 10, 1);
-        inputCodePostal.sendKeys(flux.getPersonnes().get(0).getCodePostal());
-        WebElement inputVille = waitForElement(driver, By.id("VilleSouscripteur"), 10, 1);
-        inputVille.sendKeys(flux.getPersonnes().get(0).getVille());
-        WebElement inputEmail = waitForElement(driver, By.id("EmailSouscripteur"), 10, 1);
-        inputEmail.sendKeys(flux.getPersonnes().get(0).getEmail());
-        WebElement inputPortable = waitForElement(driver, By.id("PortableSouscripteur"), 10, 1);
-        inputPortable.sendKeys(flux.getPersonnes().get(0).getTelephone());
+        elementLib.randomWait(1000, 2000);
+        String civilite = flux.getPersonnes().getFirst().getCivilite();
+        if (civilite.equalsIgnoreCase("M") || civilite.equalsIgnoreCase("Monsieur")) {
+            elementLib.clickByTextElement(sel("projet.civilite_monsieur_text"));
+        } else {
+            elementLib.clickByTextElement(sel("projet.civilite_madame_text"));
+        }
+        elementLib.typeByLabel(sel("projet.code_postal_label"), flux.getPersonnes().getFirst().getCodePostal());
+        elementLib.typeByLabel(sel("projet.ville_label"), flux.getPersonnes().getFirst().getVille());
+        suivant();
     }
 
-    private void remplirCouverture() {
-        WebElement inputCouvertureActuelle = waitForElement(driver, By.id("RiaIndicateurCouverture-false"), 10, 1);
-        inputCouvertureActuelle.click();
+    private void remplirTarification() {
+        elementLib.randomWait(1500, 2500);
+        elementLib.clickByTextElement(sel("tarification.metier_sante_text"));
+        elementLib.click(sel("tarification.sante_100_oui_selector"));
+        elementLib.clickByRole(sel("tarification.tarifer_label"));
+        elementLib.randomWait(2000, 3000);
+    }
+
+    private void remplirBeneficiaires(FluxData flux) {
+        elementLib.typeByLabel(sel("tarification.date_effet_label"), dateEffet(1));
+        if (flux.getPersonnes().size() >= 2) {
+            elementLib.clickByRole(sel("tarification.ajouter_conjoint_label"));
+            remplirDernierBeneficiaire(
+                    flux.getPersonnes().get(1).getNom(),
+                    flux.getPersonnes().get(1).getPrenom(),
+                    flux.getPersonnes().get(1).getDateNaissance());
+        }
+        for (var enfant : flux.getEnfants()) {
+            if (enfant.getNom() == null || enfant.getNom().isEmpty()) break;
+            elementLib.clickByRole(sel("tarification.ajouter_enfant_label"));
+            remplirDernierBeneficiaire(enfant.getNom(), enfant.getPrenom(), enfant.getDateNaissance());
+        }
+        scrollDown(300);
+    }
+
+    private void remplirDernierBeneficiaire(String nom, String prenom, String dateNaissance) {
+        elementLib.randomWait(700, 1300);
+        page.locator(sel("tarification.nom_beneficiaire_selector")).last().fill(nom);
+        page.locator(sel("tarification.prenom_beneficiaire_selector")).last().fill(prenom);
+        page.locator(sel("tarification.naissance_beneficiaire_selector")).last().fill(dateNaissance);
     }
 
     private void suivant() {
-        WebElement buttonSuivant = waitForElement(driver, By.id("next"), 10, 1);
-        buttonSuivant.click();
+        elementLib.randomWait(700, 1300);
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName(sel("navigation.suivant_label")))
+                .first().click();
+        elementLib.randomWait(1000, 2000);
     }
 
-    private void remplirCoordonnees(FluxData flux, int index) {
-        waitThread(2);
-        if (flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("M") || flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Monsieur")) {
-            WebElement radioCivilite = waitForElement(driver, By.xpath("//div[@class='pc-radio-button']//label[normalize-space(text())='Monsieur']"), 15, 1);
-            radioCivilite.click();
-        } else if (flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Mme") || flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Madame")) {
-            WebElement radioCivilite = waitForElement(driver, By.xpath("//div[@class='pc-radio-button']//label[normalize-space(text())='Madame']"), 15, 1);
-            radioCivilite.click();
-        }
-        InformationsPersonne.infoPrenom(driver, By.id("insured_firstname"), 10, 2, flux, index, source);
-        InformationsPersonne.infoNom(driver, By.id("inusred_lastname"), 10, 2, flux, index, source);
-        InformationsPersonne.infoCodePostal(driver, By.id("postalCode"), 10, 2, flux, index, source);
-        InformationsPersonne.infoTelephone(driver, By.id("phone"), 10, 2, flux, index, source);
-        InformationsPersonne.infoEmail(driver, By.id("email"), 10, 2, flux, index, source);
+    private String dateEffet(int mois) {
+        return LocalDate.now().plusMonths(mois).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
-
-    private void choixRegime(FluxData flux, int index) {
-        waitThread(1);
-        WebElement dropdownRegime = null;
-        if (index == 0) {
-            dropdownRegime = waitForElement(driver, By.xpath("//*[@id=\"RegimeSouscripteur-button\"]"), 10, 1);
-            dropdownRegime.click();
-        }
-        if (dropdownRegime != null) {
-            List<WebElement> options = driver.findElements(By.xpath("//*[contains(@id,'RegimeSouscripteur-menu')]//li"));
-            options.get(1).click();
-        }
-    }
-
-    private void choixCivilite(FluxData flux, int index) {
-        waitThread(1);
-        WebElement dropdownRegime = null;
-        if (index == 0) {
-            dropdownRegime = waitForElement(driver, By.xpath("//*[@id='CiviliteSouscripteur-button']"), 10, 1);
-            dropdownRegime.click();
-        }
-        if (dropdownRegime != null) {
-            List<WebElement> options = driver.findElements(By.xpath("//*[contains(@id,'CiviliteSouscripteur-menu')]//li"));
-            if (flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Monsieur") || flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("M"))
-                options.get(1).click();
-            if (flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Madame") || flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Mme"))
-                options.get(2).click();
-        }
-    }
-
-    private void choixCategorieSocioPro(FluxData flux, int index) {
-        WebElement dropdownCategorieSocioPro = null;
-        if (index == 0) {
-            dropdownCategorieSocioPro = waitForElement(driver, By.id("insured_category_select"), 15, 1);
-        } if (index == 1) {
-            dropdownCategorieSocioPro = waitForElement(driver, By.id("insured_category_select"), 15, 1);
-        }
-        if (dropdownCategorieSocioPro != null) {
-            Select selectCategorieSocioPro = new Select(dropdownCategorieSocioPro);
-            List<WebElement> options = selectCategorieSocioPro.getOptions();
-            for (WebElement opt : options) {
-                if (opt.getText().contains("Agriculteurs exploitants") && flux.getPersonnes().get(index).getProfessionSpecifique().equalsIgnoreCase("Agriculteur")) {
-                    selectCategorieSocioPro.selectByVisibleText("Agriculteurs exploitants");
-                } else if (opt.getText().contains("Artisans") && flux.getPersonnes().get(index).getProfessionSpecifique().equalsIgnoreCase("Artisan")) {
-                    selectCategorieSocioPro.selectByVisibleText("Artisans");
-                } else if (opt.getText().contains("Cadres") && flux.getPersonnes().get(index).getProfessionSpecifique().equalsIgnoreCase("Salarié cadre")) {
-                    selectCategorieSocioPro.selectByVisibleText("Cadres");
-                } else if (opt.getText().contains("Cadres et employés de la fonction publique") && flux.getPersonnes().get(index).getProfessionSpecifique().equalsIgnoreCase("Salarié non cadre : employé")) {
-                    selectCategorieSocioPro.selectByVisibleText("Cadres et employés de la fonction publique");
-                }
-//                else if (opt.getText().contains("Chefs d'entreprise") && flux.getPersonnes().get(index).getProfessionSpecifique().equalsIgnoreCase("Rachat crédit")) {
-//                    selectCategorieSocioPro.selectByVisibleText("Rachat crédit");
-//                }
-                else if (opt.getText().contains("Commerçants et assimilés") && flux.getPersonnes().get(index).getProfessionSpecifique().equalsIgnoreCase("Commerçant")) {
-                    selectCategorieSocioPro.selectByVisibleText("Commerçants et assimilés");
-                }
-//                else if (opt.getText().contains("Employés, agents de maitrise") && flux.getPersonnes().get(index).getProfessionSpecifique().equalsIgnoreCase("Rachat crédit")) {
-//                    selectCategorieSocioPro.selectByVisibleText("Rachat crédit");
-//                }
-                else if (opt.getText().contains("Ouvriers") && flux.getPersonnes().get(index).getProfessionSpecifique().equalsIgnoreCase("Ouvrier")) {
-                    selectCategorieSocioPro.selectByVisibleText("Ouvriers");
-                } else if (opt.getText().contains("Professions libérales et assimilés") && flux.getPersonnes().get(index).getProfessionSpecifique().equalsIgnoreCase("Profession libérale")) {
-                    selectCategorieSocioPro.selectByVisibleText("Professions libérales et assimilés");
-                }
-            }
-        }
-    }
-
-    @Override
-    protected void pageName(String namePage) {}
-
 }

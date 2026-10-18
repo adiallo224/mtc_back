@@ -1,0 +1,33 @@
+# Sélecteurs pour Hodeva - Mutuelle Individuelle (assuMutuelIndiv/HodevaMIService)
+# Modifie ce fichier quand le site Hodeva change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+# Tout est A VERIFIER sur le site réel (écrit d'après process_mutual_particuliers.txt, aucun sélecteur
+# n'existait pour les particuliers).
+
+connexion:
+  username_selector: "input[type='text'], input[name*='login' i], input[name*='user' i]"
+  password_selector: "input[type='password']"
+  submit_label: "Connexion"
+
+navigation:
+  tarificateur_senior_text: "TARIFICATEUR SANTE SENIOR"
+
+tarification:
+  civilite_monsieur_text: "Monsieur"
+  civilite_madame_text: "Madame"
+  nom_label: "Nom"
+  prenom_label: "Prénom"
+  date_naissance_label: "Date de naissance"
+  code_postal_label: "Code postal"
+  # Offre : SENIOR au-delà de 50 ans (par défaut), TOUT PUBLIC en dessous (automatique)
+  conjoint_checkbox_label: "Conjoint"
+  enfants_checkbox_label: "Enfant"
+  # Après chaque ajout, le dernier champ visible correspondant est rempli
+  date_naissance_beneficiaire_selector: "input[name*='naissance' i]:visible"
+  regime_beneficiaire_selector: "select[name*='regime' i]:visible"
+  regime_valeur: "Régime général"
+  obtenir_tarif_label: "OBTENIR UN TARIF"
+
+resultats:
+  # Cartes des 5 formules (6 pour la gamme SENIOR)
+  carte_selector: "[class*='formule' i], [class*='offre' i]"

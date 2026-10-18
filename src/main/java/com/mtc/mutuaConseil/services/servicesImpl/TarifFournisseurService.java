@@ -66,7 +66,10 @@ public class TarifFournisseurService {
             HennerMlService hennerMIService,
             QuatremMIService quatremMIService,
             RepamMIService repamMIService,
-            SmisoMIService smisoMIService
+            SmisoMIService smisoMIService,
+            FFAMIService ffaMIService,
+            HodevaMIService hodevaMIService,
+            MalakoffMIService malakoffMIService
     ) {
         // Initialisation du map avec les services disposables
         // Mutuelle prêt
@@ -111,6 +114,9 @@ public class TarifFournisseurService {
         this.serviceMap.put("Quatrem_Mutuelle_Indiv", quatremMIService);
         this.serviceMap.put("Repam_Mutuelle_Indiv", repamMIService);
         this.serviceMap.put("Smiso_Mutuelle_Indiv", smisoMIService);
+        this.serviceMap.put("Ffa_Mutuelle_Indiv", ffaMIService);
+        this.serviceMap.put("Hodeva_Mutuelle_Indiv", hodevaMIService);
+        this.serviceMap.put("Malakoff_Mutuelle_Indiv", malakoffMIService);
     }
 
     public List<Tarif> getTarifsForComptes(List<Compte> comptes, FluxData flux) {

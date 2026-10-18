@@ -1,0 +1,35 @@
+# Sélecteurs pour FFA (Luxior) - Mutuelle Individuelle (assuMutuelIndiv/FFAMIService)
+# Modifie ce fichier quand le site FFA change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+# connexion.* et le comparateur (pc-*) sont repris de FFAMutuelProService ; navigation.* et tarification.*
+# sont A VERIFIER sur le site réel (écrits d'après process_mutual_particuliers.txt).
+
+connexion:
+  cookie_refuse_label: "Non merci"
+  username_id: username
+  password_id: password
+  submit_selector: "#kc-form-buttons button, #kc-form-buttons input[type='submit']"
+
+navigation:
+  bandeau_ffa_text: "ACCES FFA SANTE & PREVOYANCE"
+  individuel_text: "INDIVIDUEL"
+  sante_particulier_text: "SANTE PARTICULIER"
+  sante_senior_text: "SANTE SENIOR"
+  tarification_text: "TARIFICATION"
+  # Âge à partir duquel on prend SANTE SENIOR (« > 56 ans »)
+  age_senior: "57"
+
+tarification:
+  # Un bloc par adhérent (adhérent, conjoint) : la date de naissance et le régime sont remplis dans l'ordre
+  date_naissance_selector: "input[id*='birth' i]:visible"
+  regime_selector: "select[id*='regime' i]:visible"
+  regime_valeur: "Salarié"
+  code_postal_label: "Code postal"
+  date_effet_label: "Date d'effet"
+  tarifer_label: "TARIFER"
+
+resultats:
+  # A6 (actif) ou A5 (senior) : %s remplacé par le libellé de la formule
+  ligne_template: ".pc-offer:has-text('%s')"
+  formule_actif: "A6"
+  formule_senior: "A5"

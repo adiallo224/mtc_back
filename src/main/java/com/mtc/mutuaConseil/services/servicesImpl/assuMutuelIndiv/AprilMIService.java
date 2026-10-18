@@ -1,199 +1,192 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelIndiv;
 
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.LoadState;
+import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.models.FluxData;
 import com.mtc.mutuaConseil.models.Tarif;
+import com.mtc.mutuaConseil.models.TypeAssurance;
+import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
-import com.mtc.mutuaConseil.utils.PageElementInteraction;
 import com.mtc.mutuaConseil.utils.TarifUtils;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.edge.EdgeDriver;
-import org.openqa.selenium.interactions.Actions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class AprilMIService extends PageElementInteraction implements LaunchedService {
+public class AprilMIService extends BasePlaywrightService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(AprilMIService.class);
-    public static WebDriver driver;
-    private final String source = "AprilMutuelIndivService";
-    private static Actions actions;
+    private static final String PROVIDER = "mutuelIndiv/april-mi";
+    private static final int SMS_TIMEOUT_SECONDS = 180;
+
     private final TypeAssuranceService typeAssuranceService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
 
-    public AprilMIService(TypeAssuranceService typeAssuranceService){
+    public AprilMIService(TypeAssuranceService typeAssuranceService, SelectorStore selectors) {
         this.typeAssuranceService = typeAssuranceService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
     }
 
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
-        Tarif tarifAprilMutuelIndiv = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);;
-        tarifAprilMutuelIndiv.setNom(c.getNomFournisseur());
-        driver = new EdgeDriver();
-        driver.manage().window().maximize();
-        actions = new Actions(driver);
+        log.info("Début de traitement -- April_Mutuel_Indiv (Playwright)");
+
+        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 2L);
+        tarif.setNom(c.getNomFournisseur());
+        TypeAssurance typeAssurance = new TypeAssurance();
+        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_INDIV);
+        tarif.setTypeAssurance(typeAssurance);
+
         try {
-            connexion(c);
-            remplirContrat(flux);
-            suivant();
-            waitThread(8);
-            WebElement sectionPrix = waitForElement(driver, By.xpath("//span[@id='market-place_health_comparator_health-rate_1_rate_total-price']"), 10, 1);
-            String cout = sectionPrix.getText();
-            log.info("cout {}", cout);
-            chatClose();
-            tarifAprilMutuelIndiv.setMontant(cout);
-            String screenshotBytes = captureScreenshot(driver, tarifAprilMutuelIndiv.getNom(), false, tarifAprilMutuelIndiv);
-            if (screenshotBytes != null) {
-                tarifAprilMutuelIndiv.setCaptureImg(screenshotBytes);
+            // Navigateur visible obligatoire : le code SMS est saisi à la main
+            initializeBrowser(false);
+            humanLikeNavigate(c.getUrlFournisseur());
+            step("connexion", () -> connexion(c));
+            step("sms", () -> waitForManualInput(sel("sms.input_selector"), SMS_TIMEOUT_SECONDS));
+            step("navigation", this::navigation);
+            step("contrat", () -> remplirContrat(flux));
+            step("assures", () -> remplirAssures(flux));
+            step("voir_offres", () -> elementLib.clickById(sel("contrat.voir_offres_id")));
+            page.waitForLoadState(LoadState.NETWORKIDLE);
+            elementLib.randomWait(5000, 8000);
+            clickIfExists("#" + sel("resultats.chat_close_id"));
+            step("hospitalisation", this::reglerHospitalisation);
+            currentStep = "lecture_resultats";
+            List<String> couts = lirePrix();
+            log.info("couts {}", couts);
+            tarif.setMontant(couts);
+            String screenshotPath = captureScreenshot(tarif.getNom(), false, tarif);
+            if (screenshotPath != null) {
+                tarif.setCaptureImg(screenshotPath);
             }
-            tarifAprilMutuelIndiv.setExecution(true);
+            tarif.setExecution(true);
         } catch (Exception e) {
-            log.error("An error occurred", e);
-            tarifAprilMutuelIndiv.setErreur(e.getMessage());
-            String screenshotBytesErreur = captureScreenshot(driver, tarifAprilMutuelIndiv.getNom(), true, tarifAprilMutuelIndiv);
-            tarifAprilMutuelIndiv.setCaptureImgErreur(screenshotBytesErreur);
-            tarifAprilMutuelIndiv.setEtape("");
+            log.error("Échec à l'étape '{}'", currentStep, e);
+            tarif.setErreur(e.getMessage());
+            String screenshotPath = captureScreenshot(tarif.getNom(), true, tarif);
+            tarif.setCaptureImgErreur(screenshotPath);
+            tarif.setEtape(currentStep);
         } finally {
-            driver.quit();
+            cleanup();
         }
-        return tarifAprilMutuelIndiv;
+        return tarif;
     }
 
-    public void connexion(Compte c) {
-        driver.get(c.getUrlFournisseur());
-        waitThread(3);
-        inputByName(driver, "username", c.getUsername());
-        inputByName(driver, "password", c.getPassword());
-        clicButtonByXpath(driver, "//*[@id=\"login-button\"]", actions);
-        waitThread(5);
+    private void connexion(Compte c) {
+        elementLib.randomWait(2500, 3500);
+        elementLib.humanTypeByXpath(sel("connexion.username_xpath"), c.getUsername());
+        elementLib.humanTypeByXpath(sel("connexion.password_xpath"), c.getPassword());
+        elementLib.randomWait(700, 1300);
+        elementLib.clickById(sel("connexion.login_button_id"));
+    }
+
+    /** OFFRES \ PARTICULIERS \ SANTE \ FAIRE UN DEVIS */
+    private void navigation() {
+        elementLib.randomWait(1500, 2500);
+        elementLib.clickByTextElement(sel("navigation.offres_text"));
+        elementLib.clickByTextElement(sel("navigation.particuliers_text"));
+        elementLib.clickByTextElement(sel("navigation.sante_text"));
+        elementLib.clickByTextElement(sel("navigation.faire_devis_text"));
+        elementLib.randomWait(1500, 2500);
     }
 
     private void remplirContrat(FluxData flux) {
-        waitThread(2);
-        WebElement inputAdherentContratIndiv = waitForElement(driver, By.xpath("//*[@id=\"radio-input_market-place_health_client-needs_effect-date-form_individual-policy_aon-choice_1_label\"]"), 10, 1);
-        inputAdherentContratIndiv.click();
-        waitThread(1);
-        if (flux.getPersonnes().get(0).getCivilite().equalsIgnoreCase("Monsieur")) {
-            WebElement inputCivilite = waitForElement(driver, By.xpath("//label[@id='radio-input_market-place_health_client-needs_main-insured-form_civilities_aon-choice_0_label']"), 10, 1);
-            inputCivilite.click();
+        var assure = flux.getPersonnes().getFirst();
+        elementLib.clickById(sel("contrat.deja_adherent_non_id"));
+        if (assure.getCivilite().equalsIgnoreCase("M") || assure.getCivilite().equalsIgnoreCase("Monsieur")) {
+            elementLib.clickById(sel("contrat.civilite_monsieur_id"));
+        } else {
+            elementLib.clickById(sel("contrat.civilite_madame_id"));
         }
-        if (flux.getPersonnes().get(0).getCivilite().equalsIgnoreCase("Madame")) {
-            WebElement inputCivilite = waitForElement(driver, By.xpath("//label[@id='radio-input_market-place_health_client-needs_main-insured-form_civilities_aon-choice_1_label']"), 10, 1);
-            inputCivilite.click();
-        }
-        WebElement inputDateEffet = waitForElement(driver, By.xpath("//input[@id='market-place_health_client-needs_effect-date-form_effective-date_date-picker_input']"), 10, 1);
-        inputDateEffet.sendKeys(dateEffet(1));
-        waitThread(1);
-
-        WebElement inputPrenom = waitForElement(driver, By.xpath("//input[@id='market-place_health_client-needs_main-insured-form_first-name_input-text_input']"), 10, 1);
-        inputPrenom.sendKeys(flux.getPersonnes().get(0).getPrenom());
-        waitThread(1);
-
-        WebElement inputNom = waitForElement(driver, By.xpath("//input[@id='market-place_health_client-needs_main-insured-form_last-name_input-text_input']"), 10, 1);
-        inputNom.sendKeys(flux.getPersonnes().get(0).getNom());
-        waitThread(1);
-
-        WebElement inputDateNaissance = waitForElement(driver, By.xpath("//input[@id='market-place_health_client-needs_main-insured-form_birth-date_date-picker_input']"), 10, 1);
-        inputDateNaissance.sendKeys(flux.getPersonnes().get(0).getDateNaissance());
-        waitThread(1);
-
-        WebElement inputCodePostal = waitForElement(driver, By.xpath("//input[@id='market-place_health_client-needs_main-insured-form_countries_input-zipcode_input']"), 10, 1);
-        inputCodePostal.sendKeys(flux.getPersonnes().get(0).getCodePostal());
-        waitThread(1);
-
-        choixStatut(flux);
-
-        remplirAssureConjoint(flux);
-
-        remplirAssureEnfant(flux);
+        elementLib.humanTypeById(sel("contrat.date_effet_id"), dateEffet(1));
+        elementLib.humanTypeById(sel("contrat.prenom_id"), assure.getPrenom());
+        elementLib.humanTypeById(sel("contrat.nom_id"), assure.getNom());
+        elementLib.humanTypeById(sel("contrat.date_naissance_id"), assure.getDateNaissance());
+        elementLib.humanTypeById(sel("contrat.code_postal_id"), assure.getCodePostal());
+        choixRegime();
+        choixStatut();
+        scrollDown(300);
     }
 
-    private void remplirAssureConjoint(FluxData flux) {
-        waitThread(2);
-        if (flux.getPersonnes().size() == 2) {
-            ajouterAssure();
-            WebElement buttonConjoint = waitForElement(driver, By.id("radio-input_market-place_health_client-needs_beneficiary_0_beneficiary-form_relationships_aon-choice_0_label"), 10, 1);
-            buttonConjoint.click();
-            WebElement inputDateNaissanceConjoint = waitForElement(driver, By.xpath("//input[@id='market-place_health_client-needs_beneficiary_0_beneficiary-form_birth-date_date-picker_input']"), 10, 1);
-            inputDateNaissanceConjoint.sendKeys(flux.getPersonnes().get(1).getDateNaissance());
-            waitThread(2);
-        }
+    private void choixRegime() {
+        elementLib.click(sel("contrat.regime_selector"));
+        elementLib.randomWait(700, 1300);
+        page.getByRole(com.microsoft.playwright.options.AriaRole.OPTION,
+                new com.microsoft.playwright.Page.GetByRoleOptions().setName(sel("contrat.regime_valeur"))).first().click();
     }
 
-    private void remplirAssureEnfant(FluxData flux) {
-        if (flux.getEnfants().get(0).getNom() != null && !flux.getEnfants().get(0).getNom().isEmpty()) {
-            ajouterAssure();
-            WebElement inputDateNaissanceEnfant = waitForElement(driver, By.id("market-place_health_client-needs_beneficiary_1_beneficiary-form_birth-date_date-picker_input"), 10, 1);
-            inputDateNaissanceEnfant.sendKeys(flux.getEnfants().get(0).getDateNaissance());
-            waitThread(2);
-        }
-        if (flux.getEnfants().size() == 2) {
-            ajouterAssure();
-            WebElement inputDateNaissanceEnfant = waitForElement(driver, By.id("market-place_health_client-needs_beneficiary_2_beneficiary-form_birth-date_date-picker_input"), 10, 1);
-            inputDateNaissanceEnfant.sendKeys(flux.getEnfants().get(1).getDateNaissance());
-            waitThread(2);
-        }
+    private void choixStatut() {
+        elementLib.clickById(sel("contrat.statut_select_id"));
+        elementLib.randomWait(700, 1300);
+        page.getByRole(com.microsoft.playwright.options.AriaRole.OPTION,
+                new com.microsoft.playwright.Page.GetByRoleOptions().setName(sel("contrat.statut_defaut")).setExact(true)).first().click();
+    }
 
+    private void remplirAssures(FluxData flux) {
+        if (flux.getPersonnes().size() >= 2) {
+            ajouterAssure();
+            elementLib.clickById(sel("assures.conjoint_relation_id"));
+            elementLib.humanTypeById(sel("assures.conjoint_naissance_id"), flux.getPersonnes().get(1).getDateNaissance());
+        }
+        if (!flux.getEnfants().isEmpty() && flux.getEnfants().getFirst().getNom() != null
+                && !flux.getEnfants().getFirst().getNom().isEmpty()) {
+            ajouterAssure();
+            elementLib.humanTypeById(sel("assures.enfant1_naissance_id"), flux.getEnfants().getFirst().getDateNaissance());
+            if (flux.getEnfants().size() >= 2) {
+                ajouterAssure();
+                elementLib.humanTypeById(sel("assures.enfant2_naissance_id"), flux.getEnfants().get(1).getDateNaissance());
+            }
+        }
     }
 
     private void ajouterAssure() {
-        WebElement buttonAjouterAssure = waitForElement(driver, By.id("market-place_health_client-needs_add-insured-button"), 10, 1);
-        buttonAjouterAssure.click();
+        elementLib.randomWait(1000, 2000);
+        elementLib.clickById(sel("assures.ajouter_id"));
     }
 
-    private void choixStatut(FluxData flux) {
-        waitThread(1);
-        WebElement selectStatut = waitForElement(driver, By.id("market-place_health_client-needs_main-insured-form_prefessional-status_input-select_0_professionalStatus"), 10, 1);
-        selectStatut.click();
-        WebElement selectOption = waitForElement(driver, By.xpath("//div[@role=\"listbox\"]"), 10, 1);
-        waitThread(1);
-        List<WebElement> items = selectOption.findElements(By.xpath(".//div[@role='option']"));
-        for (WebElement element : items) {
-             if (element.getText().equalsIgnoreCase("Cadre") &&
-                 (flux.getPersonnes().get(0).getProfessionSpecifique().equalsIgnoreCase("Chef d'entreprise") ||
-                 flux.getPersonnes().get(0).getProfessionSpecifique().equalsIgnoreCase("Artisan") ||
-                 flux.getPersonnes().get(0).getProfessionSpecifique().equalsIgnoreCase("Commerçant") ||
-                 flux.getPersonnes().get(0).getProfessionSpecifique().contains("Salarié cadre"))
-             ) {
-                element.click();
-                break;
-             }
-             if (element.getText().equalsIgnoreCase("Ouvrier") && flux.getPersonnes().get(0).getProfessionSpecifique().equalsIgnoreCase("Ouvrier")) {
-                 element.click();
-                 break;
-             }
-             if (element.getText().equalsIgnoreCase("Employé") && flux.getPersonnes().get(0).getProfessionSpecifique().contains("Salarié non cadre : employé")) {
-                 element.click();
-                 break;
-             }
-             if (element.getText().equalsIgnoreCase("Fonctionnaire") &&
-                 (flux.getPersonnes().get(0).getProfessionSpecifique().equalsIgnoreCase("Fonctionnaire classe a")
-                 || flux.getPersonnes().get(0).getProfessionSpecifique().equalsIgnoreCase("Fonctionnaire hors classe a"))) {
-                 element.click();
-                 break;
-             }
+    /** Hospitalisation : « + » jusqu'à 250 %, puis « Actualiser ma recherche ». */
+    private void reglerHospitalisation() {
+        Locator plus = page.locator(sel("hospitalisation.plus_selector")).first();
+        int clics = Integer.parseInt(sel("hospitalisation.nb_clics"));
+        for (int i = 0; i < clics && plus.count() > 0 && plus.isEnabled(); i++) {
+            plus.click();
+            elementLib.randomWait(300, 700);
         }
-        scrollDown(driver, 0, 300);
+        elementLib.clickByRole(sel("hospitalisation.actualiser_label"));
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+        elementLib.randomWait(4000, 6000);
     }
 
-    private void suivant() {
-        waitThread(1);
-        WebElement buttonSuivant = waitForElement(driver, By.xpath("//button[@id='market-place_health_client-needs_see-offers']"), 10, 1);
-        buttonSuivant.click();
+    /** Relève toutes les propositions affichées à l'écran. */
+    private List<String> lirePrix() {
+        List<String> prix = new ArrayList<>();
+        int max = Integer.parseInt(sel("resultats.nb_offres_max"));
+        for (int i = 1; i <= max; i++) {
+            Locator offre = page.locator(String.format(sel("resultats.prix_template"), i));
+            if (offre.count() == 0) break;
+            prix.add(offre.first().innerText().replace(' ', ' ').trim());
+        }
+        return prix;
     }
 
-    private void chatClose() {
-        waitThread(1);
-        WebElement buttonSuivant = waitForElement(driver, By.id("chat-prompting-close"), 10, 1);
-        buttonSuivant.click();
+    private String dateEffet(int mois) {
+        return LocalDate.now().plusMonths(mois).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
-
-    @Override
-    protected void pageName(String namePage) {}
 }

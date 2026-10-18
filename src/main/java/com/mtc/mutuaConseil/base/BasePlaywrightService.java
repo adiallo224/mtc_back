@@ -450,4 +450,57 @@ public abstract class BasePlaywrightService {
         }
     }
 
+    /** Âge en années pleines à partir d'une date au format dd/MM/yyyy. */
+    protected int ageEn(String dateNaissance) {
+        return java.time.Period.between(
+                java.time.LocalDate.parse(dateNaissance, java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                java.time.LocalDate.now()).getYears();
+    }
+
+    /**
+     * Lit le premier montant en euros de chaque ligne/carte dont le libellé figure dans
+     * {@code libellesPipe} (ex: "Equilibre 5|Equilibre 6"). {@code rowSelectorTemplate} contient
+     * un {@code %s} remplacé par le libellé. Les libellés introuvables sont ignorés.
+     */
+    protected java.util.List<String> prixParLibelle(String rowSelectorTemplate, String libellesPipe) {
+        java.util.List<String> prix = new java.util.ArrayList<>();
+        java.util.regex.Pattern montant = java.util.regex.Pattern.compile("\\d[\\d\\s.,]*\\s?€");
+        for (String libelle : libellesPipe.split("\\|")) {
+            Locator row = page.locator(String.format(rowSelectorTemplate, libelle.trim()));
+            if (row.count() == 0) {
+                log.warn("Formule introuvable : '{}'", libelle);
+                continue;
+            }
+            String texte = row.first().innerText().replace(' ', ' ');
+            java.util.regex.Matcher m = montant.matcher(texte);
+            if (m.find()) {
+                prix.add(m.group().trim());
+            } else {
+                log.warn("Montant introuvable pour '{}' : '{}'", libelle, texte);
+            }
+        }
+        return prix;
+    }
+
+    /**
+     * Pause pour une saisie manuelle (ex: code SMS) : attend que l'élément {@code selector}
+     * (le champ du code) disparaisse, c'est-à-dire que l'utilisateur ait validé le code.
+     * Si le champ n'apparaît pas dans les 10 premières secondes, aucune 2FA n'est demandée.
+     */
+    protected void waitForManualInput(String selector, int timeoutSeconds) {
+        Locator field = page.locator(selector).first();
+        try {
+            field.waitFor(new Locator.WaitForOptions()
+                    .setState(WaitForSelectorState.VISIBLE)
+                    .setTimeout(10_000));
+        } catch (PlaywrightException e) {
+            log.info("Pas de saisie manuelle requise (champ '{}' absent)", selector);
+            return;
+        }
+        log.warn("Saisie manuelle requise : saisissez le code dans le navigateur ({} s max)", timeoutSeconds);
+        field.waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.HIDDEN)
+                .setTimeout(timeoutSeconds * 1000.0));
+    }
+
 }

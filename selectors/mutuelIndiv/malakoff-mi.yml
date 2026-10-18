@@ -1,0 +1,38 @@
+# Sélecteurs pour Malakoff Humanis (Atout+) - Mutuelle Individuelle (assuMutuelIndiv/MalakoffMIService)
+# Modifie ce fichier quand le site Malakoff change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+# Tout est A VERIFIER sur le site réel (écrit d'après process_mutual_particuliers.txt, aucun sélecteur
+# n'existait pour les particuliers).
+
+connexion:
+  username_selector: "input[type='text'], input[name*='login' i], input[name*='user' i]"
+  password_selector: "input[type='password']"
+  submit_label: "Se connecter"
+
+navigation:
+  tarification_express_text: "TARIFICATION EXPRESS"
+  atout_plus_particulier_text: "ATOUT+ PARTICULIER"
+
+tarification:
+  date_effet_label: "Date d'effet"
+  date_naissance_label: "Date de naissance"
+  regime_selector: "select[id*='regime' i]:visible"
+  regime_valeur: "Général"
+  # Bénéficiaires supplémentaires : lien de parenté + date de naissance + régime (dernier champ visible)
+  ajouter_beneficiaire_label: "Ajouter"
+  lien_parente_selector: "select[id*='parente' i]:visible, select[id*='lien' i]:visible"
+  lien_conjoint: "Conjoint"
+  lien_enfant: "Enfant"
+  date_naissance_beneficiaire_selector: "input[id*='naissance' i]:visible"
+  # Taux de commission : LINEAIRE 12 %
+  commission_selector: "select[id*='commission' i]"
+  commission_valeur: "LINEAIRE 12%"
+  # Case à décocher
+  case_a_decocher_selector: "input[type='checkbox'][checked]:visible"
+  coefficient_selector: "input[id*='coefficient' i]"
+  coefficient_valeur: "1"
+  reinitialiser_label: "REINITIALISER"
+
+resultats:
+  # Tarifs des 6 formules affichées
+  prix_selector: "[class*='formule' i] [class*='prix' i], [class*='tarif' i] [class*='montant' i]"

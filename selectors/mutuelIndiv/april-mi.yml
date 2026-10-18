@@ -1,0 +1,56 @@
+# Sélecteurs pour April - Mutuelle Individuelle (assuMutuelIndiv/AprilMIService)
+# Modifie ce fichier quand le site April change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+# Les ids de la section contrat/assures sont repris de l'ancien code Selenium. A VERIFIER : sms.*,
+# navigation.*, hospitalisation.* et resultats.* (écrits d'après process_mutual_particuliers.txt).
+
+connexion:
+  username_xpath: "//input[@name='username']"
+  password_xpath: "//input[@name='password']"
+  login_button_id: login-button
+
+sms:
+  # Champ du code à 6 chiffres reçu par SMS : à saisir MANUELLEMENT dans le navigateur ouvert.
+  # Le service attend que ce champ disparaisse (timeout en secondes dans le code : 180).
+  input_selector: "input[autocomplete='one-time-code'], input[name*='code' i], input[inputmode='numeric']"
+
+navigation:
+  offres_text: "Offres"
+  particuliers_text: "Particuliers"
+  sante_text: "Santé"
+  faire_devis_text: "Faire un devis"
+
+contrat:
+  deja_adherent_non_id: radio-input_market-place_health_client-needs_effect-date-form_individual-policy_aon-choice_1_label
+  date_effet_id: market-place_health_client-needs_effect-date-form_effective-date_date-picker_input
+  civilite_monsieur_id: radio-input_market-place_health_client-needs_main-insured-form_civilities_aon-choice_0_label
+  civilite_madame_id: radio-input_market-place_health_client-needs_main-insured-form_civilities_aon-choice_1_label
+  prenom_id: market-place_health_client-needs_main-insured-form_first-name_input-text_input
+  nom_id: market-place_health_client-needs_main-insured-form_last-name_input-text_input
+  date_naissance_id: market-place_health_client-needs_main-insured-form_birth-date_date-picker_input
+  code_postal_id: market-place_health_client-needs_main-insured-form_countries_input-zipcode_input
+  # Régime : "Sécurité sociale" ; statut : "Employé" par défaut (cf. process_mutual_particuliers.txt)
+  regime_selector: "[id*='main-insured-form'][id*='regime']"
+  regime_valeur: "Sécurité sociale"
+  statut_select_id: market-place_health_client-needs_main-insured-form_prefessional-status_input-select_0_professionalStatus
+  statut_defaut: "Employé"
+  voir_offres_id: market-place_health_client-needs_see-offers
+
+assures:
+  ajouter_id: market-place_health_client-needs_add-insured-button
+  conjoint_relation_id: radio-input_market-place_health_client-needs_beneficiary_0_beneficiary-form_relationships_aon-choice_0_label
+  conjoint_naissance_id: market-place_health_client-needs_beneficiary_0_beneficiary-form_birth-date_date-picker_input
+  enfant1_naissance_id: market-place_health_client-needs_beneficiary_1_beneficiary-form_birth-date_date-picker_input
+  enfant2_naissance_id: market-place_health_client-needs_beneficiary_2_beneficiary-form_birth-date_date-picker_input
+
+hospitalisation:
+  # Zone hospitalisation : clic sur « + » jusqu'à 250 % puis « Actualiser ma recherche »
+  plus_selector: "[id*='hospitalisation'] button[aria-label*='Augmenter' i], [id*='hospitalisation'] button:has-text('+')"
+  actualiser_label: "Actualiser ma recherche"
+  nb_clics: "10"
+
+resultats:
+  chat_close_id: chat-prompting-close
+  # %d = rang de l'offre affichée (1, 2, 3...) ; tous les prix affichés à l'écran sont relevés
+  prix_template: "#market-place_health_comparator_health-rate_%d_rate_total-price"
+  nb_offres_max: "6"
