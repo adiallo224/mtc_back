@@ -54,14 +54,14 @@ public class HodevaMIService extends BasePlaywrightService implements LaunchedSe
             initializeBrowser(false);
             humanLikeNavigate(c.getUrlFournisseur());
             step("connexion", () -> connexion(c));
-            step("tarificateur", () -> elementLib.clickByTextElement(sel("navigation.tarificateur_senior_text")));
+            step("tarificateur", this::ouvrirTarificateur);
             step("assure", () -> remplirAssure(flux));
             step("beneficiaires", () -> remplirBeneficiaires(flux));
             step("tarifer", () -> elementLib.clickByRole(sel("tarification.obtenir_tarif_label")));
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(4000, 6000);
             currentStep = "lecture_resultats";
-            List<String> couts = lirePrix();
+            List<String> couts = lirePrix(c);
             log.info("couts {}", couts);
             tarif.setMontant(couts);
             // Le fichier demande une copie d'écran des 5 formules (6 pour la gamme SENIOR)
@@ -84,54 +84,98 @@ public class HodevaMIService extends BasePlaywrightService implements LaunchedSe
 
     private void connexion(Compte c) {
         elementLib.randomWait(2000, 3000);
-        elementLib.typeHumanLike(sel("connexion.username_selector"), c.getUsername());
-        elementLib.typeHumanLike(sel("connexion.password_selector"), c.getPassword());
+        elementLib.humanTypeById(sel("connexion.username_id"), c.getUsername());
+        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
         elementLib.randomWait(700, 1300);
-        elementLib.clickByRole(sel("connexion.submit_label"));
+        elementLib.clickByXpath(sel("connexion.submit_xpath"));
     }
 
-    /** L'offre se règle seule : SENIOR (plus de 50 ans, valeur par défaut) ou TOUT PUBLIC (moins de 50 ans). */
+    /** Le lien « SANTE SENIOR » s'ouvre dans un nouvel onglet : on bascule dessus. */
+    private void ouvrirTarificateur() {
+        elementLib.randomWait(1500, 2500);
+        elementLib.clickAndSwitchToNewWindow(sel("navigation.sante_senior_selector"));
+        this.page = elementLib.getPage();
+        elementLib.randomWait(1500, 2500);
+    }
+
+    /** L'offre (#ff_elem529) se règle seule : SENIOR (plus de 50 ans) ou TOUT PUBLIC (moins de 50 ans). */
     private void remplirAssure(FluxData flux) {
         var assure = flux.getPersonnes().getFirst();
         elementLib.randomWait(1500, 2500);
         if (assure.getCivilite().equalsIgnoreCase("M") || assure.getCivilite().equalsIgnoreCase("Monsieur")) {
-            elementLib.clickByTextElement(sel("tarification.civilite_monsieur_text"));
+            elementLib.click(sel("tarification.civilite_monsieur_selector"));
         } else {
-            elementLib.clickByTextElement(sel("tarification.civilite_madame_text"));
+            elementLib.click(sel("tarification.civilite_madame_selector"));
         }
-        elementLib.typeByLabel(sel("tarification.nom_label"), assure.getNom());
-        elementLib.typeByLabel(sel("tarification.prenom_label"), assure.getPrenom());
-        elementLib.typeByLabel(sel("tarification.date_naissance_label"), assure.getDateNaissance());
-        elementLib.typeByLabel(sel("tarification.code_postal_label"), assure.getCodePostal());
+        elementLib.typeHumanLike(sel("tarification.nom_selector"), assure.getNom());
+        elementLib.typeHumanLike(sel("tarification.prenom_selector"), assure.getPrenom());
+        saisirDateNaissance("assure", assure.getDateNaissance());
+        elementLib.typeHumanLike(sel("tarification.code_postal_selector"), assure.getCodePostal());
+        page.locator(sel("tarification.assure_regime_selector")).selectOption(sel("tarification.regime_valeur"));
     }
 
+    /**
+     * Conjoint (Oui/Non) puis nombre d'enfants. Chaque choix affiche une section dédiée
+     * (Conjoint, Enfant 1, Enfant 2). Seuls les 2 premiers enfants sont pris en compte par Hodeva
+     * (gratuité à partir du 3ème).
+     */
     private void remplirBeneficiaires(FluxData flux) {
-        if (flux.getPersonnes().size() >= 2) {
-            page.getByLabel(sel("tarification.conjoint_checkbox_label")).first().check();
-            remplirDernierBeneficiaire(flux.getPersonnes().get(1).getDateNaissance());
-        }
-        for (var enfant : flux.getEnfants()) {
-            if (enfant.getNom() == null || enfant.getNom().isEmpty()) break;
-            page.getByLabel(sel("tarification.enfants_checkbox_label")).first().check();
-            remplirDernierBeneficiaire(enfant.getDateNaissance());
-        }
-    }
-
-    private void remplirDernierBeneficiaire(String dateNaissance) {
+        boolean aConjoint = flux.getPersonnes().size() >= 2;
         elementLib.randomWait(700, 1300);
-        page.locator(sel("tarification.date_naissance_beneficiaire_selector")).last().fill(dateNaissance);
-        Locator regime = page.locator(sel("tarification.regime_beneficiaire_selector")).last();
-        if (regime.count() > 0) {
-            regime.selectOption(new com.microsoft.playwright.options.SelectOption()
-                    .setLabel(sel("tarification.regime_valeur")));
+        elementLib.click(aConjoint ? sel("tarification.conjoint_oui_selector") : sel("tarification.conjoint_non_selector"));
+        if (aConjoint) {
+            elementLib.randomWait(700, 1300);
+            remplirBeneficiaire("conjoint", flux.getPersonnes().get(1).getDateNaissance());
+        }
+
+        List<String> naissancesEnfants = flux.getEnfants().stream()
+                .filter(e -> e.getNom() != null && !e.getNom().isEmpty())
+                .map(e -> e.getDateNaissance())
+                .limit(2)
+                .toList();
+        page.locator(sel("tarification.nb_enfants_selector")).selectOption(String.valueOf(naissancesEnfants.size()));
+        elementLib.randomWait(1000, 2000);
+        for (int i = 0; i < naissancesEnfants.size(); i++) {
+            remplirBeneficiaire("enfant" + (i + 1), naissancesEnfants.get(i));
         }
     }
 
-    /** Prix des 5 formules (6 pour la gamme SENIOR) affichées. */
-    private List<String> lirePrix() {
-        return page.locator(sel("resultats.carte_selector")).allInnerTexts().stream()
-                .map(t -> t.replace(' ', ' ').replaceAll("\\s+", " ").trim())
-                .filter(t -> t.contains("€"))
-                .toList();
+    /** Date de naissance + régime de la section {@code prefixe} (conjoint, enfant1, enfant2). */
+    private void remplirBeneficiaire(String prefixe, String dateNaissance) {
+        saisirDateNaissance(prefixe, dateNaissance);
+        page.locator(sel("tarification." + prefixe + "_regime_selector")).selectOption(sel("tarification.regime_valeur"));
+    }
+
+    /** Date jj/MM/aaaa répartie dans les 3 champs (JJ, MM, AAAA) de la section {@code prefixe}. */
+    private void saisirDateNaissance(String prefixe, String dateNaissance) {
+        String[] parts = dateNaissance.split("/");
+        elementLib.randomWait(500, 1000);
+        elementLib.typeHumanLike(sel("tarification." + prefixe + "_jour_selector"), parts[0]);
+        elementLib.typeHumanLike(sel("tarification." + prefixe + "_mois_selector"), parts[1]);
+        elementLib.typeHumanLike(sel("tarification." + prefixe + "_annee_selector"), parts[2]);
+    }
+
+    /**
+     * Sélectionne le niveau du compte (clic sur « Niveau N ») puis relève les cotisations mensuelles
+     * (hors renfort) de ce niveau jusqu'au dernier : 5 formules, 6 pour la gamme SENIOR.
+     * Ex : niveau 5 -> prix du niveau 5 ; niveau 4 -> prix des niveaux 4 et 5.
+     */
+    private List<String> lirePrix(Compte compte) {
+        elementLib.waitForElement(sel("resultats.attente_selector"), 30);
+        int niveau = Math.max(compte.getNiveau(), 1);
+        elementLib.click(String.format(sel("resultats.niveau_template"), niveau));
+        elementLib.randomWait(700, 1300);
+
+        List<String> prix = new java.util.ArrayList<>();
+        int max = Integer.parseInt(sel("resultats.nb_formules_max"));
+        for (int i = niveau; i <= max; i++) {
+            Locator formule = page.locator(String.format(sel("resultats.prix_template"), i));
+            if (formule.count() == 0) break;
+            prix.add(formule.first().innerText().replace(' ', ' ').trim());
+        }
+        if (prix.isEmpty()) {
+            log.warn("Aucun prix trouvé à partir du niveau {}", niveau);
+        }
+        return prix;
     }
 }

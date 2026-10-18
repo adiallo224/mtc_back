@@ -1,33 +1,57 @@
 # Sélecteurs pour Hodeva - Mutuelle Individuelle (assuMutuelIndiv/HodevaMIService)
 # Modifie ce fichier quand le site Hodeva change -- pas besoin de recompiler.
 # Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
-# Tout est A VERIFIER sur le site réel (écrit d'après process_mutual_particuliers.txt, aucun sélecteur
-# n'existait pour les particuliers).
+# connexion, formulaire (assuré, conjoint, enfants) et résultats : sélecteurs relevés dans le HTML du site.
 
 connexion:
-  username_selector: "input[type='text'], input[name*='login' i], input[name*='user' i]"
-  password_selector: "input[type='password']"
-  submit_label: "Connexion"
+  username_id: modlgn-username
+  password_id: modlgn-passwd
+  submit_xpath: "//button[normalize-space()='Connexion']"
 
 navigation:
-  tarificateur_senior_text: "TARIFICATEUR SANTE SENIOR"
+  # Menu « SANTE SENIOR » (target=_blank : s'ouvre dans un nouvel onglet)
+  sante_senior_selector: "a[href='/liaison-sante-indsenior']"
 
 tarification:
-  civilite_monsieur_text: "Monsieur"
-  civilite_madame_text: "Madame"
-  nom_label: "Nom"
-  prenom_label: "Prénom"
-  date_naissance_label: "Date de naissance"
-  code_postal_label: "Code postal"
-  # Offre : SENIOR au-delà de 50 ans (par défaut), TOUT PUBLIC en dessous (automatique)
-  conjoint_checkbox_label: "Conjoint"
-  enfants_checkbox_label: "Enfant"
-  # Après chaque ajout, le dernier champ visible correspondant est rempli
-  date_naissance_beneficiaire_selector: "input[name*='naissance' i]:visible"
-  regime_beneficiaire_selector: "select[name*='regime' i]:visible"
-  regime_valeur: "Régime général"
+  # Sélecteurs par attribut name (les ids ff_elemNNN changent d'une session à l'autre)
+  civilite_monsieur_selector: "input[name='ff_nm_civ[]'][value='monsieur']"
+  civilite_madame_selector: "input[name='ff_nm_civ[]'][value='madame']"
+  nom_selector: "input[name='ff_nm_nom[]']"
+  prenom_selector: "input[name='ff_nm_prenom[]']"
+  code_postal_selector: "input[name='ff_nm_cp[]']"
+  # Date de naissance en 3 champs (JJ / MM / AAAA), un jeu de name par personne
+  assure_jour_selector: "input[name='ff_nm_ddnj[]']"
+  assure_mois_selector: "input[name='ff_nm_ddnm[]']"
+  assure_annee_selector: "input[name='ff_nm_ddna[]']"
+  # Offre (select[name='ff_nm_offre2[]']) : "senior" (+ de 50 ans) ou "generation" (tout public) -> laissée telle quelle
+  # Régime obligatoire : value "general" (Régime général), "alsace" ou "ssi"
+  assure_regime_selector: "select[name='ff_nm_regime[]']"
+  regime_valeur: general
+  conjoint_oui_selector: "input[name='ff_nm_conjoint[]'][value='1']"
+  conjoint_non_selector: "input[name='ff_nm_conjoint[]'][value='0']"
+  nb_enfants_selector: "select[name='ff_nm_nb_enfants[]']"
+  # Section Conjoint (affichée après « Oui »)
+  conjoint_jour_selector: "input[name='ff_nm_ddnj2[]']"
+  conjoint_mois_selector: "input[name='ff_nm_ddnm2[]']"
+  conjoint_annee_selector: "input[name='ff_nm_ddna2[]']"
+  conjoint_regime_selector: "select[name='ff_nm_regime2[]']"
+  # Section Enfant 1 (affichée à partir de « 1 enfant »)
+  enfant1_jour_selector: "input[name='ff_nm_ddnj_enfant1[]']"
+  enfant1_mois_selector: "input[name='ff_nm_ddnm_enfant1[]']"
+  enfant1_annee_selector: "input[name='ff_nm_ddna_enfant1[]']"
+  enfant1_regime_selector: "select[name='ff_nm_regime_enfant1[]']"
+  # Section Enfant 2 (affichée à partir de « 2 enfants »)
+  enfant2_jour_selector: "input[name='ff_nm_ddnj_enfant2[]']"
+  enfant2_mois_selector: "input[name='ff_nm_ddnm_enfant2[]']"
+  enfant2_annee_selector: "input[name='ff_nm_ddna_enfant2[]']"
+  enfant2_regime_selector: "select[name='ff_nm_regime_enfant2[]']"
   obtenir_tarif_label: "OBTENIR UN TARIF"
 
 resultats:
-  # Cartes des 5 formules (6 pour la gamme SENIOR)
-  carte_selector: "[class*='formule' i], [class*='offre' i]"
+  # Tableau des tarifs chargé en ajax : on attend le prix de la 1re formule
+  attente_selector: "#n1"
+  # Cotisation mensuelle (hors renfort) de la formule %d : span#n1 .. span#n5 (n6 pour la gamme SENIOR)
+  prix_template: "#n%d"
+  nb_formules_max: "6"
+  # Bouton « Niveau %d » de la ligne « Sélectionner la formule » (clic sur le label qui contient le radio)
+  niveau_template: "label:has(input[name='niveau_henner'][value='%d'])"
