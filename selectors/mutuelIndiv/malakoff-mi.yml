@@ -1,38 +1,42 @@
 # Sélecteurs pour Malakoff Humanis (Atout+) - Mutuelle Individuelle (assuMutuelIndiv/MalakoffMIService)
 # Modifie ce fichier quand le site Malakoff change -- pas besoin de recompiler.
 # Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
-# Tout est A VERIFIER sur le site réel (écrit d'après process_mutual_particuliers.txt, aucun sélecteur
-# n'existait pour les particuliers).
+# Écrit d'après todo/mi/malakoff_indiv.txt.
 
 connexion:
-  username_selector: "input[type='text'], input[name*='login' i], input[name*='user' i]"
-  password_selector: "input[type='password']"
-  submit_label: "Se connecter"
+  username_selector: "#login"
+  password_selector: "#pwd"
+  submit_selector: "#authentificateSubmit"
 
 navigation:
-  tarification_express_text: "TARIFICATION EXPRESS"
-  atout_plus_particulier_text: "ATOUT+ PARTICULIER"
+  menu_tarification_selector: "h2.titre:text-is('Tarification')"
+  tarification_express_selector: "a[href='/navigation/oav-tarificateur']"
+  # ATOUT+ PARTICULIER = offre commerciale 606
+  atout_plus_particulier_selector: "a[href*='idOffreCommerciale/606']"
 
 tarification:
-  date_effet_label: "Date d'effet"
-  date_naissance_label: "Date de naissance"
-  regime_selector: "select[id*='regime' i]:visible"
-  regime_valeur: "Général"
-  # Bénéficiaires supplémentaires : lien de parenté + date de naissance + régime (dernier champ visible)
-  ajouter_beneficiaire_label: "Ajouter"
-  lien_parente_selector: "select[id*='parente' i]:visible, select[id*='lien' i]:visible"
+  date_effet_selector: "#DateEffetSouhaitee"
+  date_naissance_selector: "#DateNaissanceSouscripteur"
+  code_postal_selector: "#CodePostalSouscripteur"
+  regime_id: "RegimeSouscripteur"
+  ajouter_beneficiaire_selector: "#ajoutGroupeBeneficiaireTarifInfoSouscripteur"
+  # %s = index du bénéficiaire (0 pour le 1er ajouté)
+  lien_parente_id_template: "Beneficiaire_%s_LienParente"
+  regime_beneficiaire_id_template: "Beneficiaire_%s_Regime"
+  date_naissance_beneficiaire_template: "#Beneficiaire_%s_DateNaissance"
   lien_conjoint: "Conjoint"
   lien_enfant: "Enfant"
-  date_naissance_beneficiaire_selector: "input[id*='naissance' i]:visible"
-  # Taux de commission : LINEAIRE 12 %
-  commission_selector: "select[id*='commission' i]"
-  commission_valeur: "LINEAIRE 12%"
-  # Case à décocher
-  case_a_decocher_selector: "input[type='checkbox'][checked]:visible"
-  coefficient_selector: "input[id*='coefficient' i]"
+  etape_suivante_selector: "#next"
+
+commission:
+  select_id: "levier_TauxCommission"
+  valeur: "Linéaire 12%"
+  # Bouton/img de la cagnotte (affiche le panneau contenant le coefficient)
+  cagnotte_toggle_selector: "#cagnotteDevis_AfficherCagnotteDevis"
+  coefficient_selector: "#cagnotteDevis_CoefficientFinancement"
   coefficient_valeur: "1"
-  reinitialiser_label: "REINITIALISER"
+  reinitialiser_selector: "#cagnotteDevis_BoutonReset"
 
 resultats:
-  # Tarifs des 6 formules affichées
-  prix_selector: "[class*='formule' i] [class*='prix' i], [class*='tarif' i] [class*='montant' i]"
+  # Ligne « Cotisation Mensuelle » hors option (l'autre ligne « avec options » fait doublon)
+  prix_selector: "tr.prixSansOption td[class*='prixCotisationSansOption'] > span.modelChampNote"

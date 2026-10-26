@@ -163,7 +163,7 @@ public class AlptisMIService extends BasePlaywrightService implements LaunchedSe
         choixCategorieSocioPro(flux, 0);
         choixRegime(flux, 0);
         elementLib.randomWait(1500, 2500);
-        elementLib.humanTypeById(sel("adherent.postal_code_id"), flux.getPersonnes().get(0).getCodePostal());
+        elementLib.humanTypeById(sel("adherent.postal_code_id"), flux.getPersonnes().getFirst().getCodePostal());
     }
 
     private void remplirConjoint(FluxData flux) {

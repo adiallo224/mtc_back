@@ -1,35 +1,36 @@
 # Sélecteurs pour FFA (Luxior) - Mutuelle Individuelle (assuMutuelIndiv/FFAMIService)
 # Modifie ce fichier quand le site FFA change -- pas besoin de recompiler.
 # Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
-# connexion.* et le comparateur (pc-*) sont repris de FFAMutuelProService ; navigation.* et tarification.*
-# sont A VERIFIER sur le site réel (écrits d'après process_mutual_particuliers.txt).
+# Écrit d'après todo/mi/ffa_indiv.txt. Le site est en frames : le service cherche chaque sélecteur
+# dans toutes les frames de la page.
 
 connexion:
-  cookie_refuse_label: "Non merci"
-  username_id: username
-  password_id: password
-  submit_selector: "#kc-form-buttons button, #kc-form-buttons input[type='submit']"
+  username_id: identifiant
+  password_id: mdp
+  submit_selector: "#envoyer"
 
 navigation:
-  bandeau_ffa_text: "ACCES FFA SANTE & PREVOYANCE"
-  individuel_text: "INDIVIDUEL"
-  sante_particulier_text: "SANTE PARTICULIER"
-  sante_senior_text: "SANTE SENIOR"
-  tarification_text: "TARIFICATION"
-  # Âge à partir duquel on prend SANTE SENIOR (« > 56 ans »)
-  age_senior: "57"
+  sante_selector: "#menuSiteLuxiort27"
+  individuel_selector: "#menuSiteFFAt9"
+  sante_particulier_selector: "#menuSiteFFAt10"
+  sante_senior_selector: "#menuSiteFFAt11"
+  tarification_selector: "#menuSiteFFA2t1"
+  # Âge à partir duquel on prend « Santé sénior » (>= 56 ans)
+  age_senior: "56"
 
 tarification:
-  # Un bloc par adhérent (adhérent, conjoint) : la date de naissance et le régime sont remplis dans l'ordre
-  date_naissance_selector: "input[id*='birth' i]:visible"
-  regime_selector: "select[id*='regime' i]:visible"
-  regime_valeur: "Salarié"
-  code_postal_label: "Code postal"
-  date_effet_label: "Date d'effet"
-  tarifer_label: "TARIFER"
+  adherent_date_selector: "#txt_ddn_adherent"
+  adherent_regime_selector: "#cbo_regime_adherent"
+  conjoint_date_selector: "#txt_ddn_conjoint"
+  conjoint_regime_selector: "#cbo_regime_conjoint"
+  # %s = index de l'enfant (0 pour le 1er)
+  enfant_date_template: "#txt_ddn_enf_%s"
+  # Lien « Nouveau » qui ajoute l'enfant n°%s (ajouteEnfant(1) ajoute le 2e enfant)
+  ajouter_enfant_template: "a[href*='ajouteEnfant(%s)']"
+  code_postal_selector: "#txt_dept"
+  date_effet_selector: "#txt_dt_effet"
+  tarifer_selector: "a.ButtonAction:text-is('Tarifer')"
 
 resultats:
-  # A6 (actif) ou A5 (senior) : %s remplacé par le libellé de la formule
-  ligne_template: ".pc-offer:has-text('%s')"
-  formule_actif: "A6"
-  formule_senior: "A5"
+  # Ligne « Tarifs » des 6 formules standard (la 2e ligne « Tarifs » = formules renforcées, ignorée)
+  ligne_tarifs_selector: "tr.TXT_NORMAL:has(> td:text-is('Tarifs'))"

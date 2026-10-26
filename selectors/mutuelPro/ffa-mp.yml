@@ -1,0 +1,34 @@
+# Sélecteurs pour FFA (Luxior) - Mutuelle Pro (TNS) (assuMutuelPro/FFAMProService)
+# Modifie ce fichier quand le site FFA change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+# Écrit d'après todo/mi/ffa_indiv.txt. Le site est en frames : le service cherche chaque sélecteur
+# dans toutes les frames de la page.
+
+connexion:
+  username_id: identifiant
+  password_id: mdp
+  submit_selector: "#envoyer"
+
+navigation:
+  sante_selector: "#menuSiteLuxiort27"
+  individuel_selector: "#menuSiteFFAt9"
+  # Sous-menu « Santé TNS » (à vérifier sur le site : id non fourni)
+  sante_tns_selector: "a.MENU_SOUS_TITRE_1:text-is('Santé TNS')"
+  tarification_selector: "#menuSiteFFA2t1"
+
+tarification:
+  adherent_date_selector: "#txt_ddn_adherent"
+  adherent_regime_selector: "#cbo_regime_adherent"
+  conjoint_date_selector: "#txt_ddn_conjoint"
+  conjoint_regime_selector: "#cbo_regime_conjoint"
+  # %s = index de l'enfant (0 pour le 1er)
+  enfant_date_template: "#txt_ddn_enf_%s"
+  # Lien « Nouveau » qui ajoute l'enfant n°%s (ajouteEnfant(1) ajoute le 2e enfant)
+  ajouter_enfant_template: "a[href*='ajouteEnfant(%s)']"
+  code_postal_selector: "#txt_dept"
+  date_effet_selector: "#txt_dt_effet"
+  tarifer_selector: "a.ButtonAction:text-is('Tarifer')"
+
+resultats:
+  # Ligne « Tarifs » des 6 formules standard (la 2e ligne « Tarifs » = formules renforcées, ignorée)
+  ligne_tarifs_selector: "tr.TXT_NORMAL:has(> td:text-is('Tarifs'))"

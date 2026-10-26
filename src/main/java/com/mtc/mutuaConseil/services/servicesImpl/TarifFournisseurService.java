@@ -49,10 +49,12 @@ public class TarifFournisseurService {
             ApicilMutuelProService apicilMProService,
             EcaHeomieMProService ecaMProService,
             EntoriaMutuelProService entoriaMProService,
-            FFAMutuelProService ffaMProService,
+            FFAMProService ffaMProService,
             HarmonieMutuelProService harmonieMProService,
             HennerMProService hennerMProService,
+            HodevaMProService hodevaMProService,
             LoomaMProService loomaMProService,
+            MalakoffMProService malakoffMProService,
             QuatremMProService quatremMProService,
             RepamMProService repamMProService,
             SmisoMProService smisoMProService,
@@ -99,7 +101,9 @@ public class TarifFournisseurService {
         this.serviceMap.put("Ffa_Mutuelle_Pro", ffaMProService);
         this.serviceMap.put("Harmonie_Mutuelle_Pro", harmonieMProService);
         this.serviceMap.put("Henner_Mutuelle_Pro", hennerMProService);
+        this.serviceMap.put("Hodeva_Mutuelle_Pro", hodevaMProService);
         this.serviceMap.put("Looma_Mutuelle_Pro", loomaMProService); //à revoir
+        this.serviceMap.put("Malakoff_Mutuelle_Pro", malakoffMProService);
         this.serviceMap.put("Quatrem_Mutuelle_Pro", quatremMProService);
         this.serviceMap.put("Repam_Mutuelle_Pro", repamMProService);
         this.serviceMap.put("Smiso_Mutuelle_Pro", smisoMProService);
