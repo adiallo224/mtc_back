@@ -11,14 +11,17 @@ connexion:
 
 navigation:
   sante_selector: "#menuSiteLuxiort27"
-  individuel_selector: "#menuSiteFFAt9"
-  # Sous-menu « Santé TNS » (à vérifier sur le site : id non fourni)
-  sante_tns_selector: "a.MENU_SOUS_TITRE_1:text-is('Santé TNS')"
+  # Groupe « T.N.S » du menu, à déplier avant d'accéder à son sous-menu
+  tns_selector: "#menuSiteFFAt6"
+  # Sous-menu Santé du groupe T.N.S (à vérifier : id non fourni ; accepte « Santé » ou « Santé TNS »)
+  sante_tns_selector: "a.MENU_SOUS_TITRE_1:text-matches('^Santé( TNS)?$', 'i')"
   tarification_selector: "#menuSiteFFA2t1"
 
 tarification:
   adherent_date_selector: "#txt_ddn_adherent"
   adherent_regime_selector: "#cbo_regime_adherent"
+  # Libellé (début) de l'option régime TNS : « TNS En Activité »
+  regime_tns_libelle: "TNS"
   conjoint_date_selector: "#txt_ddn_conjoint"
   conjoint_regime_selector: "#cbo_regime_conjoint"
   # %s = index de l'enfant (0 pour le 1er)
@@ -30,5 +33,7 @@ tarification:
   tarifer_selector: "a.ButtonAction:text-is('Tarifer')"
 
 resultats:
+  # Formule à retenir : A6 = 6e formule
+  formule_retenue: "6"
   # Ligne « Tarifs » des 6 formules standard (la 2e ligne « Tarifs » = formules renforcées, ignorée)
   ligne_tarifs_selector: "tr.TXT_NORMAL:has(> td:text-is('Tarifs'))"

@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import static java.util.Objects.nonNull;
 
@@ -182,21 +181,28 @@ public class SmisoMProService extends BasePlaywrightService implements LaunchedS
     }
 
     private List<String> getPrixParNiveau(int niveau) {
-        Locator cartes = page.locator(sel("resultats.cartes_css"))
-                .filter(new Locator.FilterOptions()
-                        .setHasText(Pattern.compile(sel("resultats.formule_pattern"))));
+        Locator libelles = page.locator(sel("resultats.niveau_label_selector"));
+        libelles.first().waitFor(new Locator.WaitForOptions().setTimeout(30000));
         List<String> prix = new ArrayList<>();
 
-        for (int i = niveau; i < cartes.count(); i++) {
-            String montant = cartes
-                    .nth(i)
+        // Uniquement le niveau demandé (1 à 5) ; niveau absent ou hors plage => les 5 niveaux
+        int total = libelles.count();
+        boolean niveauValide = niveau >= 1 && niveau <= total;
+        int debut = niveauValide ? niveau - 1 : 0;
+        int fin = niveauValide ? niveau : total;
+        for (int i = debut; i < fin; i++) {
+            // Carte du niveau = ancêtre MuiCard le plus proche du libellé ; 1er <code> = prix « par mois »
+            String montant = libelles.nth(i)
+                    .locator(sel("resultats.carte_niveau_xpath"))
                     .locator("code span")
                     .first()
                     .innerText()
+                    .replace(' ', ' ')
                     .trim();
 
             prix.add(montant + " €");
         }
+        log.info("Prix Smiso lus : {}", prix);
         return prix;
     }
 

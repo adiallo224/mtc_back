@@ -14,6 +14,7 @@ import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -84,8 +85,13 @@ public class HodevaMProService extends BasePlaywrightService implements Launched
 
     private void connexion(Compte c) {
         elementLib.randomWait(2000, 3000);
-        elementLib.humanTypeById(sel("connexion.username_id"), c.getUsername());
-        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
+        // Deux formulaires possibles : module de login (modlgn-*) ou page de login Joomla (username / password)
+        boolean module = page.locator("#" + sel("connexion.username_id")).count() > 0;
+        String usernameId = module ? sel("connexion.username_id") : sel("connexion.page_username_id");
+        String passwordId = module ? sel("connexion.password_id") : sel("connexion.page_password_id");
+        log.debug("Formulaire de connexion Hodeva : {}", module ? "module" : "page de login");
+        elementLib.humanTypeById(usernameId, c.getUsername());
+        elementLib.humanTypeById(passwordId, c.getPassword());
         elementLib.randomWait(700, 1300);
         elementLib.clickByXpath(sel("connexion.submit_xpath"));
     }
@@ -111,7 +117,7 @@ public class HodevaMProService extends BasePlaywrightService implements Launched
         elementLib.typeHumanLike(sel("tarification.prenom_selector"), assure.getPrenom());
         saisirDateNaissance("assure", assure.getDateNaissance());
         elementLib.typeHumanLike(sel("tarification.code_postal_selector"), assure.getCodePostal());
-        page.locator(sel("tarification.assure_regime_selector")).selectOption(sel("tarification.regime_valeur"));
+ //       page.locator(sel("tarification.assure_regime_selector")).selectOption(sel("tarification.regime_valeur"));
     }
 
     /**
@@ -166,7 +172,7 @@ public class HodevaMProService extends BasePlaywrightService implements Launched
         elementLib.click(String.format(sel("resultats.niveau_template"), niveau));
         elementLib.randomWait(700, 1300);
 
-        List<String> prix = new java.util.ArrayList<>();
+        List<String> prix = new ArrayList<>();
         int max = Integer.parseInt(sel("resultats.nb_formules_max"));
         for (int i = niveau; i <= max; i++) {
             Locator formule = page.locator(String.format(sel("resultats.prix_template"), i));

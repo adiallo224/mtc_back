@@ -65,8 +65,8 @@ public class FFAMProService extends BasePlaywrightService implements LaunchedSer
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(4000, 6000);
             currentStep = "lecture_resultats";
-            List<String> couts = lirePrix(c.getNiveau());
-            log.info("couts (niveau {}) {}", c.getNiveau(), couts);
+            List<String> couts = lirePrix();
+            log.info("couts {}", couts);
             tarif.setMontant(couts);
             String screenshotPath = captureScreenshot(tarif.getNom(), false, tarif);
             if (screenshotPath != null) {
@@ -164,17 +164,15 @@ public class FFAMProService extends BasePlaywrightService implements LaunchedSer
         elementLib.click(sel("connexion.submit_selector"));
     }
 
-    /** SANTE > INDIVIDUEL > Santé TNS > TARIFICATION */
+    /** Bandeau « ACCES FFA SANTE & PREVOYANCE » > T.N.S > SANTE > TARIFICATION */
     private void navigation() {
         elementLib.randomWait(2000, 3000);
         clic(sel("navigation.sante_selector"));
         elementLib.randomWait(1500, 2500);
-        String sousMenu = sel("navigation.sante_tns_selector");
-        // INDIVIDUEL est déjà déplié par défaut ; on ne le clique que si le sous-menu est masqué
-        if (!find(sousMenu).isVisible()) {
-            clic(sel("navigation.individuel_selector"));
-        }
-        clic(sousMenu);
+        // Il faut déplier le groupe T.N.S avant de pouvoir cliquer sur son sous-menu
+        clic(sel("navigation.tns_selector"));
+        elementLib.randomWait(1000, 2000);
+        clic(sel("navigation.sante_tns_selector"));
         elementLib.randomWait(1500, 2500);
         clic(sel("navigation.tarification_selector"));
         elementLib.randomWait(1500, 2500);
@@ -184,7 +182,8 @@ public class FFAMProService extends BasePlaywrightService implements LaunchedSer
     private void remplirAdherents(FluxData flux) {
         var personnes = flux.getPersonnes();
         saisirDate(sel("tarification.adherent_date_selector"), personnes.getFirst().getDateNaissance());
-        choisirRegime(sel("tarification.adherent_regime_selector"), personnes.getFirst().getRegime());
+        // Mutuelle Pro : l'adhérent est toujours TNS (option « TNS En Activité »)
+        choisirRegime(sel("tarification.adherent_regime_selector"), sel("tarification.regime_tns_libelle"));
         if (personnes.size() >= 2) {
             elementLib.randomWait(700, 1300);
             saisirDate(sel("tarification.conjoint_date_selector"), personnes.get(1).getDateNaissance());
@@ -205,17 +204,21 @@ public class FFAMProService extends BasePlaywrightService implements LaunchedSer
     }
 
     private void tarifer() {
-        elementLib.randomWait(700, 1300);
+        elementLib.randomWait(1300, 2300);
         clic(sel("tarification.tarifer_selector"));
     }
 
-    /** Tarifs mensuels des formules du niveau demandé jusqu'à la 6 (ligne « Tarifs » standard). */
-    private List<String> lirePrix(int niveau) {
+    /** Tarif mensuel de la formule à retenir (A6 = 6e formule de la ligne « Tarifs » standard). */
+    private List<String> lirePrix() {
         List<String> cellules = find(sel("resultats.ligne_tarifs_selector")).locator("td").allInnerTexts().stream()
                 .map(t -> t.replace(' ', ' ').replaceAll("\\s+", " ").trim())
                 .filter(t -> t.contains("€"))
                 .toList();
-        return cellules.subList(Math.min(Math.max(niveau - 1, 0), cellules.size()), cellules.size());
+        int formule = Integer.parseInt(sel("resultats.formule_retenue"));
+        if (cellules.size() < formule) {
+            throw new RuntimeException("Formule " + formule + " introuvable (tarifs lus : " + cellules + ")");
+        }
+        return List.of(cellules.get(formule - 1));
     }
 
     private String dateEffet(int mois) {

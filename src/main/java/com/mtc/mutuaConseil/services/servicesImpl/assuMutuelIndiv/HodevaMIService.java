@@ -84,8 +84,13 @@ public class HodevaMIService extends BasePlaywrightService implements LaunchedSe
 
     private void connexion(Compte c) {
         elementLib.randomWait(2000, 3000);
-        elementLib.humanTypeById(sel("connexion.username_id"), c.getUsername());
-        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
+        // Deux formulaires possibles : module de login (modlgn-*) ou page de login Joomla (username / password)
+        boolean module = page.locator("#" + sel("connexion.username_id")).count() > 0;
+        String usernameId = module ? sel("connexion.username_id") : sel("connexion.page_username_id");
+        String passwordId = module ? sel("connexion.password_id") : sel("connexion.page_password_id");
+        log.debug("Formulaire de connexion Hodeva : {}", module ? "module" : "page de login");
+        elementLib.humanTypeById(usernameId, c.getUsername());
+        elementLib.humanTypeById(passwordId, c.getPassword());
         elementLib.randomWait(700, 1300);
         elementLib.clickByXpath(sel("connexion.submit_xpath"));
     }

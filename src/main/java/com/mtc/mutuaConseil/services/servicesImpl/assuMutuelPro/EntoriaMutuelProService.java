@@ -1,157 +1,218 @@
 package com.mtc.mutuaConseil.services.servicesImpl.assuMutuelPro;
 
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.LoadState;
+import com.mtc.mutuaConseil.base.BasePlaywrightService;
 import com.mtc.mutuaConseil.models.Compte;
 import com.mtc.mutuaConseil.models.FluxData;
+import com.mtc.mutuaConseil.models.Personne;
 import com.mtc.mutuaConseil.models.Tarif;
+import com.mtc.mutuaConseil.models.TypeAssurance;
+import com.mtc.mutuaConseil.models.enums.EnumTypeAssurance;
+import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
-import com.mtc.mutuaConseil.utils.InformationsUser;
-import com.mtc.mutuaConseil.utils.PageElementInteraction;
+import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.Shared;
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.edge.EdgeDriver;
-import org.openqa.selenium.interactions.Actions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.mtc.mutuaConseil.utils.TarifUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import static java.util.Objects.nonNull;
+
 @Service
-public class EntoriaMutuelProService extends PageElementInteraction implements LaunchedService {
+public class EntoriaMutuelProService extends BasePlaywrightService implements LaunchedService {
 
-    private final Logger log = LoggerFactory.getLogger(EntoriaMutuelProService.class);
-    public static WebDriver driver;
-    private final String source = "EntoriaMutuelProService";
-    private static Actions actions;
+    private static final String PROVIDER = "mutuelPro/entoria-mp";
 
+    private final TypeAssuranceService typeAssuranceService;
+    private final SelectorStore selectors;
+    private String currentStep = "démarrage";
+
+    public EntoriaMutuelProService(TypeAssuranceService typeAssuranceService, SelectorStore selectors) {
+        this.typeAssuranceService = typeAssuranceService;
+        this.selectors = selectors;
+    }
+
+    private String sel(String key) {
+        return selectors.get(PROVIDER, key);
+    }
+
+    private void step(String name, Runnable action) {
+        currentStep = name;
+        log.debug("Étape: {}", name);
+        action.run();
+    }
 
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
-        Tarif tarif = new Tarif();
+        log.info("Début de traitement -- Entoria_Mutuel_Pro (Playwright)");
+        Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 3L);
         tarif.setNom(c.getNomFournisseur());
-        driver = new EdgeDriver();
-        driver.manage().window().maximize();
-        actions = new Actions(driver);
+        TypeAssurance typeAssurance = new TypeAssurance();
+        typeAssurance.setTypeAssurance(EnumTypeAssurance.MUTUELLE_PRO);
+        tarif.setTypeAssurance(typeAssurance);
+
         try {
-            connexion(c);
-            remplirContrat(flux);
-            waitThread(2);
-            WebElement sectionPrix = waitForElement(driver, By.xpath("//section[@class='pc-results__recommendations'][1]"), 25, 1);
-            waitThread(2);
-            WebElement divTotal = sectionPrix.findElement(By.xpath("//div[@class='pc-offer-mobile__infos']//div[@class='pc-offer-price']"));
-            waitThread(2);
-            WebElement totalElement = divTotal.findElement(By.xpath("//span[@class='pc-price']//strong"));
-            waitThread(1);
-            String cout = totalElement.getText();
-            log.info("cout {}", cout);
-            tarif.setMontant(cout);
-            String screenshotBytes = captureScreenshot(driver, tarif.getNom(), false, tarif);
-            if (screenshotBytes != null) {
+            initializeBrowser(false);
+            step("connexion", () -> connexion(c));
+            step("navigation", this::ouvrirTarificateur);
+            step("contrat", () -> remplirContrat(flux));
+//            step("famille", () -> remplirFamille(flux));
+//            step("proposition", this::attendreResultats);
+            currentStep = "lecture_resultats";
+            tarif.setMontant(getPrixParNiveau());
+            String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
+            if (nonNull(screenshotBytes)) {
                 tarif.setCaptureImg(screenshotBytes);
             }
+            tarif.setExecution(true);
         } catch (Exception e) {
-            log.error("An error occurred", e);
+            log.error("Échec à l'étape '{}'", currentStep, e);
+            tarif.setErreur(e.getMessage());
+            String screenshotPath = captureScreenshot(tarif.getNom(), true, tarif);
+            tarif.setCaptureImgErreur(screenshotPath);
+            tarif.setEtape(currentStep);
         } finally {
-            driver.quit();
+            cleanup();
         }
-      return tarif;
+        return tarif;
     }
 
-    public void connexion(Compte c) {
-        driver.get(c.getUrlFournisseur());
-        waitThread(2);
-        WebElement inputCodeCourtier = waitForElement(driver, By.id("mat-input-0"), 10, 2);
-        inputCodeCourtier.sendKeys("98836");
-        InformationsUser.infoLogin(driver, By.id("mat-input-1"), 10, 2, c.getUsername());
-        InformationsUser.infoPassword(driver, By.id("password"), 10, 2, c.getPassword());
-        WebElement buttonLogin = waitForElement1(driver, By.xpath("//span[contains(text(), \"Se connecter\")]"), 20, 2);
-        buttonLogin.click();
+    // ==================== ÉTAPES ====================
+
+    private void connexion(Compte c) {
+        humanLikeNavigate(c.getUrlFournisseur());
+        elementLib.humanTypeById(sel("connexion.username_id"), c.getUsername());
+        elementLib.humanTypeById(sel("connexion.password_id"), c.getPassword());
+        elementLib.randomWait(300, 1000);
+        elementLib.clickById(sel("connexion.submit_id"));
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+    }
+
+    private void ouvrirTarificateur() {
+        elementLib.randomWait(600, 1300);
+        elementLib.humanClick("xpath=" + sel("navigation.offres_xpath"));
+        elementLib.humanClick("xpath=" + sel("navigation.sante_tns_tarifer_xpath"));
     }
 
     private void remplirContrat(FluxData flux) {
-        waitThread(7);
-        WebElement labelOffre = waitForElement(driver, By.xpath("//label[contains(text(), \"Offres\")]"), 10, 1);
-        actions.moveToElement(labelOffre).click().perform();
-        waitThread(1);
-        WebElement divTarifer = waitForElement(driver, By.xpath("//div[contains(text(), \"Tarifer\")]"), 10, 1);
-        actions.moveToElement(divTarifer).click().perform();
-        waitThread(1);
-        WebElement inputDateNaissance = waitForElement(driver, By.id("mat-input-0"), 10, 1);
-        inputDateNaissance.sendKeys(flux.getPersonnes().get(0).getDateNaissance());
-        choixProfession(flux, By.xpath("//div[@role=\"listbox\"]"));
-        choixStatut(flux, By.xpath("//div[@role=\"listbox\"]"));
-        choixRegime(flux, By.xpath("//div[@role=\"listbox\"]"));
-        choixDepartement(flux, By.xpath("//div[@role=\"listbox\"]"));
-//        WebElement radioAssureEntoria = waitForElement(driver, By.id("mat-radio-3"), 10, 1);
-//        radioAssureEntoria.click();
-        WebElement buttonTarifExpress = waitForElement1(driver, By.xpath("//span[contains(text(), \"suivant\")]"), 20, 2);
-        buttonTarifExpress.click();
+        Personne assure = flux.getPersonnes().getFirst();
+        elementLib.randomWait(600, 1300);
+        elementLib.typeHumanLike(sel("contrat.date_naissance_selector"), assure.getDateNaissance());
+        choisirProfession(assure.getProfession());
+        choisirDansListe(sel("contrat.statut_selector"), sel("contrat.statut_valeur"), true);
+        choisirDansListe(sel("contrat.regime_selector"), sel("contrat.regime_valeur"), true);
+        choisirDansListe(sel("contrat.departement_selector"),
+                Shared.getDepartementFromCodePostal(assure.getCodePostal()), false);
+        // Client assuré en prévoyance : NON (question optionnelle selon le profil)
+        String prevoyanceNon = "xpath=" + sel("contrat.prevoyance_non_xpath");
+        if (elementLib.isElementPresent(prevoyanceNon)) {
+            elementLib.humanClick(prevoyanceNon);
+        }
+        elementLib.humanClick("xpath=" + sel("contrat.tarifer_xpath"));
     }
 
-    private void choixProfession(FluxData flux, By locator) {
-        WebElement inputChoixProfession = waitForElement(driver, By.id("mat-input-2"), 10, 1);
-        inputChoixProfession.click();
-        scrollAndSelect1(driver, locator, flux.getPersonnes().get(0).getProfession(), ".//span[@class='mat-option-text']");
-    }
-
-    private void choixStatut(FluxData flux, By locator) {
-        WebElement inputMetierExerce = waitForElement(driver, By.id("mat-input-3"), 10, 1);
-        inputMetierExerce.click();
-        scrollAndSelectStatut(driver, locator, flux.getPersonnes().get(0).getProfession(), ".//span[@class='mat-option-text']");
-    }
-
-    private void choixRegime(FluxData flux, By locator) {
-        WebElement inputChoixRegime = waitForElement(driver, By.id("mat-input-4"), 10, 1);
-        inputChoixRegime.click();
-        scrollAndSelectRegime(driver, locator, flux.getPersonnes().get(0).getRegime(), ".//span[@class='mat-option-text']");
-    }
-
-    private void choixDepartement(FluxData flux, By locator) {
-        WebElement inputChoixDepartement = waitForElement(driver, By.id("mat-input-1"), 10, 1);
-        inputChoixDepartement.click();
-        scrollAndSelect1(driver, locator, Shared.getDepartementFromCodePostal(flux.getPersonnes().get(0).getCodePostal()), ".//span[@class='mat-option-text']");
-    }
-
-    public void scrollAndSelectStatut(WebDriver driver, By locator, String itemToSelect, String itemsLocator) {
-        WebElement listbox = waitForElement(driver, locator, 15, 1);
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        List<WebElement> items = listbox.findElements(By.xpath(itemsLocator));
-        for (WebElement item : items) {
-            if (item.getText().equalsIgnoreCase( "Gérant majoritaire" )) {
-                item.click();
-                break;
+    /** Conjoint et/ou enfants : on indique seulement leur présence et le nombre d'enfants (pas de dates). */
+    private void remplirFamille(FluxData flux) {
+        elementLib.randomWait(600, 1300);
+        if (flux.getPersonnes().size() > 1) {
+            elementLib.humanClick(sel("famille.conjoint_selector"));
+        }
+        long nbEnfants = flux.getEnfants() == null ? 0 : flux.getEnfants().stream()
+                .filter(e -> nonNull(e.getNom()) && !e.getNom().isBlank())
+                .count();
+        if (nbEnfants > 0) {
+            elementLib.humanClick(sel("famille.enfants_selector"));
+            for (long i = 0; i < nbEnfants; i++) {
+                elementLib.humanClick("xpath=" + sel("famille.enfant_plus_xpath"));
             }
         }
     }
 
-    public void scrollAndSelectRegime(WebDriver driver, By locator, String itemToSelect, String itemsLocator) {
-        WebElement listbox = waitForElement(driver, locator, 15, 1);
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        List<WebElement> items = listbox.findElements(By.xpath(itemsLocator));
-        for (WebElement item : items) {
-            if (item.getText().equalsIgnoreCase( "Régime général" )) {
-                item.click();
-                break;
-            }
+    private void attendreResultats() {
+        elementLib.waitForElement("xpath=" + sel("resultats.section_xpath"), 25);
+        page.waitForLoadState(LoadState.NETWORKIDLE);
+        elementLib.randomWait(1000, 3000);
+    }
+
+    // ==================== OUTILS ====================
+
+    /** Ouvre la liste d'autocomplétion Material de l'input {@code inputSelector} et clique l'option voulue. */
+    private void choisirDansListe(String inputSelector, String valeur, boolean exactSeulement) {
+        if (!ouvrirEtChoisir(inputSelector, valeur, exactSeulement)) {
+            throw new IllegalStateException("Option '" + valeur + "' introuvable dans la liste " + inputSelector);
         }
     }
 
-    public void scrollAndSelectProfession(WebDriver driver, By locator, String itemToSelect, String itemsLocator) {
-        WebElement listbox = waitForElement(driver, locator, 15, 1);
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        List<WebElement> items = listbox.findElements(By.xpath(itemsLocator));
-        for (WebElement item : items) {
-            if (item.getText().equalsIgnoreCase(itemToSelect) || item.getText().contains(itemToSelect)) {
-                waitThread(5);
-                item.click();
-                break;
-            }
+    /**
+     * Profession : si elle n'est pas dans la liste, on clique sur « Vous n'avez pas trouvé la profession ? »
+     * puis on la renseigne manuellement.
+     */
+    private void choisirProfession(String profession) {
+        if (profession == null || profession.isBlank()) {
+            throw new IllegalArgumentException("Profession non renseignée");
+        }
+        if (ouvrirEtChoisir(sel("contrat.profession_selector"), profession, false)) {
+            return;
+        }
+        log.warn("Profession '{}' absente de la liste : saisie via « profession introuvable »", profession);
+        elementLib.humanClick(sel("contrat.profession_introuvable_selector"));
+        String champ = sel("contrat.profession_introuvable_input_selector");
+        elementLib.typeHumanLike(champ, profession);
+        elementLib.pressEnter();
+        String valider = sel("contrat.profession_introuvable_valider_selector");
+        if (elementLib.isElementVisible(valider)) {
+            elementLib.humanClick(valider);
         }
     }
 
-    @Override
-    protected void pageName(String namePage) {}
+    /**
+     * Ouvre la liste d'autocomplétion de {@code inputSelector} et clique l'option voulue :
+     * correspondance exacte d'abord, puis « contient » sauf si {@code exactSeulement}.
+     * Retourne false si aucune option ne correspond (la liste reste ouverte).
+     */
+    private boolean ouvrirEtChoisir(String inputSelector, String valeur, boolean exactSeulement) {
+        elementLib.randomWait(300, 800);
+        elementLib.humanClick(inputSelector);
+        String optionsXpath = "xpath=" + sel("contrat.options_xpath");
+        elementLib.waitForElement(optionsXpath, 10);
+        Locator options = page.locator(optionsXpath);
+
+        // Comparaison côté Java (un Pattern.quote "\Q..\E" n'est pas valide en JavaScript côté Playwright).
+        List<String> textes = options.allInnerTexts();
+        String recherche = valeur.trim().replaceAll("\\s+", " ");
+        int index = -1;
+        for (int i = 0; i < textes.size() && index < 0; i++) {
+            if (textes.get(i).trim().replaceAll("\\s+", " ").equalsIgnoreCase(recherche)) {
+                index = i;
+            }
+        }
+        if (index < 0 && !exactSeulement) {
+            for (int i = 0; i < textes.size() && index < 0; i++) {
+                if (textes.get(i).toLowerCase().contains(recherche.toLowerCase())) {
+                    index = i;
+                }
+            }
+        }
+        if (index < 0) {
+            log.warn("Option '{}' introuvable parmi {} options", valeur, textes.size());
+            return false;
+        }
+        Locator option = options.nth(index);
+        option.scrollIntoViewIfNeeded();
+        elementLib.randomWait(200, 600);
+        option.click();
+        return true;
+    }
+
+    /** Prix des niveaux retenus (Confort, Sérénité, Excellence), dans cet ordre. */
+    private List<String> getPrixParNiveau() {
+        List<String> prix = prixParLibelle(sel("resultats.ligne_xpath"), sel("resultats.niveaux"));
+        log.info("Coûts Entoria : {}", prix);
+        if (prix.isEmpty()) {
+            throw new IllegalStateException("Aucun prix trouvé pour les niveaux " + sel("resultats.niveaux"));
+        }
+        return prix;
+    }
 }

@@ -6,6 +6,9 @@
 connexion:
   username_id: modlgn-username
   password_id: modlgn-passwd
+  # Page de login Joomla (/?task=user.login) : ids différents du module de login
+  page_username_id: username
+  page_password_id: password
   submit_xpath: "//button[normalize-space()='Connexion']"
 
 navigation:

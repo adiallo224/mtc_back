@@ -53,5 +53,8 @@ proposition:
   ajouter_solution_xpath: "//p[normalize-space()='Ajouter une solution']"
 
 resultats:
-  cartes_css: "div.MuiCard-root"
-  formule_pattern: "Formule \\d+%"
+  # Libellés des 5 niveaux de l'offre Activ' Santé TNS (exclut « SURCO n » de la surcomplémentaire)
+  # NB: [0-9] et non \d : Playwright traite les antislashs dans text-matches('...') comme des échappements
+  niveau_label_selector: "p:text-matches(\"^Niveau [0-9]+$\")"
+  # Depuis le libellé, remonte à la carte du niveau ; le 1er <code><span> est le prix « par mois »
+  carte_niveau_xpath: "xpath=ancestor::div[contains(@class,'MuiCard-root')][1]"

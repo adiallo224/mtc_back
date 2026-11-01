@@ -13,19 +13,26 @@ import com.mtc.mutuaConseil.selectors.SelectorStore;
 import com.mtc.mutuaConseil.services.LaunchedService;
 import com.mtc.mutuaConseil.services.servicesImpl.TypeAssuranceService;
 import com.mtc.mutuaConseil.utils.TarifUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
+import static java.util.Objects.nonNull;
+
+/**
+ * Apivia - Mutuelle Pro (TNS).
+ * Parcours : Nos offres > Santé individuelle > Nouvelle tarification > recueil de besoins/devoir de conseil
+ * > code postal / date d'effet / assuré (régime TNS) / conjoint / enfants > Vitamin3-Pro > Obtenir un tarif
+ * > lecture des niveaux Vitamin4 et Vitamin5.
+ */
 @Service
 public class ApiviaMProService extends BasePlaywrightService implements LaunchedService {
 
     private static final String PROVIDER = "mutuelPro/apivia-mp";
 
-    private final Logger log = LoggerFactory.getLogger(ApiviaMProService.class);
     private final TypeAssuranceService typeAssuranceService;
     private final SelectorStore selectors;
     private String currentStep = "démarrage";
@@ -48,7 +55,6 @@ public class ApiviaMProService extends BasePlaywrightService implements Launched
     @Override
     public Tarif getResultFrom(Compte c, FluxData flux) {
         log.info("Début de traitement -- Apivia_Mutuel_Pro (Playwright)");
-
         Tarif tarif = TarifUtils.createDefaultTarif(c, typeAssuranceService, 3L);
         tarif.setNom(c.getNomFournisseur());
         TypeAssurance typeAssurance = new TypeAssurance();
@@ -58,20 +64,19 @@ public class ApiviaMProService extends BasePlaywrightService implements Launched
         try {
             initializeBrowser(false);
             step("connexion", () -> connexion(c));
-            step("offres", this::remplirOffres);
-            step("tarificateur", this::remplirTarificateur);
+            step("nouvelle_tarification", this::nouvelleTarification);
             step("devoir_de_conseils", this::remplirDevoirDeConseils);
-            step("contrat", () -> remplirContrat(flux));
+            step("beneficiaires", () -> remplirBeneficiaires(flux));
+            step("couverture", this::choisirCouverture);
             step("calcul", this::calculer);
             page.waitForLoadState(LoadState.NETWORKIDLE);
             elementLib.randomWait(4000, 6000);
             currentStep = "lecture_resultats";
-            String cout = getPrixTtcParNiveau(2);
-            cout = cout.substring(0, Math.min(8, cout.length()));
-            log.info("cout {}", cout);
-            tarif.setMontant(cout);
+            List<String> couts = getPrixParNiveaux();
+            log.info("couts {}", couts);
+            tarif.setMontant(couts);
             String screenshotBytes = captureScreenshot(tarif.getNom(), false, tarif);
-            if (screenshotBytes != null) {
+            if (nonNull(screenshotBytes)) {
                 tarif.setCaptureImg(screenshotBytes);
             }
             tarif.setExecution(true);
@@ -96,13 +101,10 @@ public class ApiviaMProService extends BasePlaywrightService implements Launched
         elementLib.randomWait(2500, 3500);
     }
 
-    private void remplirOffres() {
+    private void nouvelleTarification() {
         elementLib.clickByTextElement(sel("navigation.nos_offres_text"));
         elementLib.randomWait(700, 1300);
-    }
-
-    private void remplirTarificateur() {
-        elementLib.humanClick(sel("navigation.particulier_individuel_xpath"));
+        elementLib.humanClick(sel("navigation.sante_individuelle_xpath"));
         elementLib.randomWait(700, 1300);
     }
 
@@ -112,75 +114,42 @@ public class ApiviaMProService extends BasePlaywrightService implements Launched
         elementLib.randomWait(700, 1300);
     }
 
-    private void remplirContrat(FluxData flux) {
-        elementLib.humanTypeById(sel("contrat.code_postal_id"), flux.getPersonnes().getFirst().getCodePostal());
-        elementLib.humanTypeById(sel("contrat.date_effet_id"), dateEffet(1));
+    private void remplirBeneficiaires(FluxData flux) {
+        elementLib.humanTypeById(sel("beneficiaires.code_postal_id"), flux.getPersonnes().getFirst().getCodePostal());
+        elementLib.humanTypeById(sel("beneficiaires.date_effet_id"), dateEffet(1));
         clickBody();
-        choixAnneeNaissance(flux, 0);
-        elementLib.randomWait(700, 1300);
-        choixRegime(flux, 0);
-        elementLib.randomWait(700, 1300);
-        remplirConjoint(flux);
+        remplirAssure(flux, 0);
+        if (flux.getPersonnes().size() == 2) {
+            remplirAssure(flux, 1);
+        }
         remplirEnfants(flux);
-        scrollDown(300);
-        elementLib.click(sel("contrat.vitamin3_xpath"));
     }
 
-    private void remplirConjoint(FluxData flux) {
+    private void remplirAssure(FluxData flux, int index) {
         elementLib.randomWait(700, 1300);
-        if (flux.getPersonnes().size() == 2) {
-            choixAnneeNaissance(flux, 1);
-            choixRegime(flux, 1);
-        }
+        String annee = extractYear(flux.getPersonnes().get(index).getDateNaissance());
+        selectOptionEquals(index == 0 ? sel("beneficiaires.assure_date_naissance_id") : sel("beneficiaires.conjoint_date_naissance_id"), annee);
+        elementLib.randomWait(700, 1300);
+        selectOptionEquals(index == 0 ? sel("beneficiaires.assure_regime_id") : sel("beneficiaires.conjoint_regime_id"), sel("beneficiaires.regime_tns_valeur"));
     }
 
     private void remplirEnfants(FluxData flux) {
-        if (flux.getEnfants().getFirst().getNom() != null && !flux.getEnfants().getFirst().getNom().isEmpty()) {
-            elementLib.randomWait(700, 1300);
-            ajoutBeneficiaire();
-            choixAnneeNaissanceEnfant(flux, 0);
-            choixRegimeEnfant(flux, 0);
+        if (flux.getEnfants().isEmpty() || flux.getEnfants().getFirst().getNom() == null
+                || flux.getEnfants().getFirst().getNom().isBlank()) {
+            return;
         }
-        if (flux.getEnfants().size() >= 2) {
+        for (int i = 0; i < Math.min(flux.getEnfants().size(), 2); i++) {
             elementLib.randomWait(700, 1300);
-            ajoutBeneficiaire();
-            choixAnneeNaissanceEnfant(flux, 1);
-            choixRegimeEnfant(flux, 1);
+            elementLib.clickByRole(sel("beneficiaires.ajouter_label"));
+            selectOptionEqualsById(sel("beneficiaires.enfant" + i + "_date_naissance_id"), extractYear(flux.getEnfants().get(i).getDateNaissance()));
+            elementLib.randomWait(700, 1300);
+            selectOptionEqualsById(sel("beneficiaires.enfant" + i + "_regime_id"), sel("beneficiaires.regime_tns_valeur"));
         }
     }
 
-    private void ajoutBeneficiaire() {
-        elementLib.clickByRole(sel("beneficiaire.ajouter_label"));
-    }
-
-    private void choixAnneeNaissance(FluxData flux, int index) {
-        elementLib.randomWait(700, 1300);
-        String annee = extractYear(flux.getPersonnes().get(index).getDateNaissance());
-        String selectId = index == 0 ? sel("contrat.assure_date_naissance_id") : sel("contrat.conjoint_date_naissance_id");
-        selectOptionEquals(selectId, annee);
-    }
-
-    private void choixAnneeNaissanceEnfant(FluxData flux, int index) {
-        elementLib.randomWait(700, 1300);
-        String annee = extractYear(flux.getEnfants().get(index).getDateNaissance());
-        String id = index == 0
-                ? sel("beneficiaire.enfant0_date_naissance_id")
-                : sel("beneficiaire.enfant1_date_naissance_id");
-        selectOptionEqualsByXpath(id, annee);
-    }
-
-    private void choixRegime(FluxData flux, int index) {
-        elementLib.randomWait(700, 1300);
-        String selectId = index == 0 ? sel("contrat.assure_regime_id") : sel("contrat.conjoint_regime_id");
-        selectOptionEquals(selectId, sel("contrat.regime_valeur"));
-    }
-
-    private void choixRegimeEnfant(FluxData flux, int index) {
-        elementLib.randomWait(700, 1300);
-        String id = index == 0
-                ? sel("beneficiaire.enfant0_regime_id")
-                : sel("beneficiaire.enfant1_regime_id");
-        selectOptionEqualsByXpath(id, sel("contrat.regime_valeur"));
+    private void choisirCouverture() {
+        scrollDown(300);
+        elementLib.click(sel("couverture.vitamin3_pro_xpath"));
     }
 
     private void calculer() {
@@ -188,46 +157,44 @@ public class ApiviaMProService extends BasePlaywrightService implements Launched
         elementLib.clickById(sel("calcul.bouton_id"));
     }
 
-    private void selectOptionEquals(String selectId, String search) {
-        Locator opts = page.locator("#" + selectId + " option");
-        int count = opts.count();
-        for (int i = 0; i < count; i++) {
-            Locator opt = opts.nth(i);
-            if (opt.innerText().trim().equalsIgnoreCase(search)) {
-                page.locator("#" + selectId).selectOption(new SelectOption().setValue(opt.getAttribute("value")));
-                break;
-            }
+    private List<String> getPrixParNiveaux() {
+        List<String> prix = new ArrayList<>();
+        for (String niveau : sel("resultats.niveaux").split(",")) {
+            String selecteur = String.format(sel("resultats.prix_selector_template"), Integer.parseInt(niveau.trim()));
+            String cout = page.locator(selecteur).innerText().trim().replaceAll("\\s+", " ");
+            prix.add(cout.substring(0, Math.min(8, cout.length())));
         }
+        return prix;
     }
 
-    private void selectOptionEqualsByXpath(String id, String search) {
-        Locator select = page.locator("id=" + id);
+    private void selectOptionEquals(String selectId, String search) {
+        selectOption(page.locator("#" + selectId), search);
+    }
+
+    private void selectOptionEqualsById(String id, String search) {
+        selectOption(page.locator("id=" + id), search);
+    }
+
+    private void selectOption(Locator select, String search) {
         Locator opts = select.locator("option");
         int count = opts.count();
         for (int i = 0; i < count; i++) {
             Locator opt = opts.nth(i);
             if (opt.innerText().trim().equalsIgnoreCase(search)) {
                 select.selectOption(new SelectOption().setValue(opt.getAttribute("value")));
-                break;
+                return;
             }
         }
+        log.warn("Option '{}' introuvable dans le select", search);
     }
 
     private String dateEffet(int months) {
-        LocalDate today = LocalDate.now();
-        LocalDate nextMonth = today.plusMonths(months);
-        return nextMonth.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        return LocalDate.now().plusMonths(months).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
 
     private static String extractYear(String dateStr) {
         if (dateStr == null || dateStr.isEmpty()) return null;
         String[] parts = dateStr.split("/");
         return parts.length == 3 ? parts[2] : null;
-    }
-
-    private String getPrixTtcParNiveau(int niveau) {
-        String selecteur = String.format(sel("resultats.prix_selector_template"), niveau);
-        Locator elementPrix = page.locator(selecteur);
-        return elementPrix.innerText().trim().replaceAll("\\s+", " ");
     }
 }
