@@ -11,4 +11,5 @@ public class ParametreGeneralRequestDto {
     private String modeRecherche;
     private LocalTime heurePurge;
     private int nbJours;
+    private String navigateurPlaywright;
 }

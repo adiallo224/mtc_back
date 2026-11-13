@@ -1,0 +1,71 @@
+# Sélecteurs pour Quatrem - Mutuelle Pro (assuMutuelPro/QuatremMProService)
+# Même site/parcours que la mutuelle individuelle (cf. selectors/mutuelIndiv/quatrem-mi.yml).
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  cookie_accept_xpath: "//*[@id=\"bandeauAcceptationCookies\"]/div/div[2]/a[3]"
+  login_id: login
+  password_id: pwd
+  submit_id: authentificateSubmit
+
+contrat:
+  date_effet_id: DateEffetSouhaitee
+
+identite:
+  civilite_button_xpath: "//*[@id='CiviliteSouscripteur-button']"
+  civilite_menu_xpath: "//*[contains(@id,'CiviliteSouscripteur-menu')]//li"
+  nom_id: NomSouscripteur
+  prenom_id: PrenomSouscripteur
+  date_naissance_id: DateNaissanceSouscripteur
+  regime_button_xpath: "//*[@id=\"RegimeSouscripteur-button\"]"
+  regime_menu_xpath: "//*[contains(@id,'RegimeSouscripteur-menu')]//li"
+
+coordonnees:
+  adresse_id: AdresseSouscripteur
+  code_postal_id: CodePostalSouscripteur
+  ville_id: VilleSouscripteur
+  email_id: EmailSouscripteur
+  telephone_id: PortableSouscripteur
+
+couverture:
+  indicateur_id: RiaIndicateurCouverture-false
+
+beneficiaire:
+  ajouter_id: ajoutGroupeBeneficiaireInfoSouscripteur
+  next_id: next
+
+  conjoint_lien_button_xpath: "//*[@id='Beneficiaire_0_LienParente-button']"
+  conjoint_lien_menu_xpath: "//*[contains(@id,'Beneficiaire_0_LienParente-menu')]//li"
+  conjoint_civilite_button_xpath: "//*[@id='Beneficiaire_0_Civilite-button']"
+  conjoint_civilite_menu_xpath: "//*[contains(@id,'Beneficiaire_0_Civilite-menu')]//li"
+  conjoint_nom_id: Beneficiaire_0_Nom
+  conjoint_prenom_id: Beneficiaire_0_Prenom
+  conjoint_date_naissance_id: Beneficiaire_0_DateNaissance
+  conjoint_regime_button_xpath: "//*[@id='Beneficiaire_0_Regime-button']"
+  conjoint_regime_menu_xpath: "//*[contains(@id,'Beneficiaire_0_Regime-menu')]//li"
+
+  enfant1_lien_button_xpath: "//*[@id='Beneficiaire_1_LienParente-button']"
+  enfant1_lien_menu_xpath: "//*[contains(@id,'Beneficiaire_1_LienParente-menu')]//li"
+  enfant1_civilite_button_xpath: "//*[@id='Beneficiaire_1_Civilite-button']"
+  enfant1_civilite_menu_xpath: "//*[contains(@id,'Beneficiaire_1_Civilite-menu')]//li"
+  enfant1_nom_id: Beneficiaire_1_Nom
+  enfant1_prenom_id: Beneficiaire_1_Prenom
+  enfant1_date_naissance_id: Beneficiaire_1_DateNaissance
+  enfant1_regime_button_xpath: "//*[@id='Beneficiaire_1_Regime-button']"
+  enfant1_regime_menu_xpath: "//*[contains(@id,'Beneficiaire_1_Regime-menu')]//li"
+
+  enfant2_lien_button_xpath: "//*[@id='Beneficiaire_2_LienParente-button']"
+  enfant2_lien_menu_xpath: "//*[contains(@id,'Beneficiaire_2_LienParente-menu')]//li"
+  enfant2_civilite_button_xpath: "//*[@id='Beneficiaire_2_Civilite-button']"
+  enfant2_civilite_menu_xpath: "//*[contains(@id,'Beneficiaire_2_Civilite-menu')]//li"
+  enfant2_nom_id: Beneficiaire_2_Nom
+  enfant2_prenom_id: Beneficiaire_2_Prenom
+  enfant2_date_naissance_id: Beneficiaire_2_DateNaissance
+  enfant2_regime_button_xpath: "//*[@id='Beneficiaire_2_Regime-button']"
+  enfant2_regime_menu_xpath: "//*[contains(@id,'Beneficiaire_2_Regime-menu')]//li"
+
+resultats:
+  cellules_selector: "tr.prix.prixSansOption td[class*='formule_']"
+  ligne_cotisation_css: "tr.prix.prixSansOption"
+  # %d est remplacé par le niveau dans le code
+  cellule_par_niveau_template: "td.formule_%d span.modelChampNote"

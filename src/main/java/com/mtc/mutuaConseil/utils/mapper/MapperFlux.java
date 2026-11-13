@@ -110,6 +110,7 @@ public class MapperFlux {
         personne.setStatutProfession(personneRequestDTO.getStatutProfession());
         personne.setProfessionSpecifique(personneRequestDTO.getProfessionSpecifique());
         personne.setProfession(personneRequestDTO.getProfession());
+        personne.setAutoEntrepreneur(personneRequestDTO.getAutoEntrepreneur());
        return personne;
     }
 

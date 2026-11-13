@@ -5,102 +5,62 @@ import com.microsoft.playwright.Dialog;
 import com.microsoft.playwright.FrameLocator;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.LoadState;
-import com.microsoft.playwright.options.MouseButton;
-import com.microsoft.playwright.options.SelectOption;
-import com.microsoft.playwright.options.WaitForSelectorState;
+import com.microsoft.playwright.options.*;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
+@Getter
 public class PlaywrightElementLibrary {
 
     private static final Logger log = LoggerFactory.getLogger(PlaywrightElementLibrary.class);
-
     protected Page page;
+    private final Random random = new Random();
 
     public PlaywrightElementLibrary(Page page) {
         this.page = page;
     }
 
-    public Page getPage() {
-        return page;
-    }
-
     // ==================== MÉTHODES D'ATTENTE ====================
 
-    /**
-     * Attendre qu'un élément soit visible par sélecteur CSS
-     */
     public Locator waitForElement(String selector, int timeoutSeconds) {
         try {
             Locator locator;
-            // Détection automatique du type de sélecteur
-            if (selector.startsWith("xpath=") || selector.startsWith("//") || selector.startsWith("(//")) {
-                // XPath
-                locator = page.locator("xpath=" + (selector.startsWith("xpath=") ? selector.substring(6) : selector));
-            } else if (selector.startsWith("#")) {
-                // ID CSS
-                locator = page.locator(selector);
-            } else if (selector.startsWith("name=")) {
-                // Name
-                locator = page.locator("[name='" + selector.substring(5) + "']");
+
+            // Détection XPath
+            if (selector.startsWith("//")
+                    || selector.startsWith("(//")
+                    || selector.startsWith("xpath=")) {
+
+                String xpath = selector.startsWith("xpath=")
+                        ? selector.substring(6)
+                        : selector;
+
+                locator = page.locator("xpath=" + xpath);
+
             } else {
-                // Par défaut CSS selector
+                // Tous les autres cas => CSS selector
                 locator = page.locator(selector);
             }
-            locator = locator.first(); // si plusieurs correspondances
-            locator.waitFor(new Locator.WaitForOptions()
-                    .setTimeout(timeoutSeconds * 1000)
-                    .setState(WaitForSelectorState.VISIBLE));
 
-            return locator;
+            locator.first().waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(timeoutSeconds * 1000)
+                            .setState(WaitForSelectorState.VISIBLE)
+            );
+
+            return locator.first();
+
         } catch (Exception e) {
-            log.error("Élément non trouvé avec le sélecteur: {}", selector, e);
-            throw e;
+            log.error("Élément non trouvé avec le sélecteur : {}", selector, e);
+            throw new RuntimeException(
+                    "Impossible de trouver l'élément : " + selector, e);
         }
-    }
-
-
-    /**
-     * Attendre un élément par XPath
-     */
-    public Locator waitForElementByXpath(String xpath, int timeoutSeconds) {
-        return waitForElement("xpath=" + xpath, timeoutSeconds);
-    }
-
-    /**
-     * Attendre un élément par ID
-     */
-    public Locator waitForElementById(String id, int timeoutSeconds) {
-        return waitForElement("#" + id, timeoutSeconds);
-    }
-
-    /**
-     * Attendre un élément par classe
-     */
-    public Locator waitForElementByClass(String className, int timeoutSeconds) {
-        return waitForElement("." + className, timeoutSeconds);
-    }
-
-    /**
-     * Attendre qu'un élément contienne un texte spécifique
-     */
-    public Locator waitForElementWithText(String selector, String text, int timeoutSeconds) {
-        return waitForElement(selector + ":has-text('" + text + "')", timeoutSeconds);
-    }
-
-    /**
-     * Attendre qu'un élément soit caché
-     */
-    public void waitForElementHidden(String selector, int timeoutSeconds) {
-        page.waitForSelector(selector,
-                new Page.WaitForSelectorOptions()
-                        .setState(WaitForSelectorState.HIDDEN)
-                        .setTimeout(timeoutSeconds * 1000));
     }
 
     // ==================== MÉTHODES DE CLIC ====================
@@ -116,7 +76,6 @@ public class PlaywrightElementLibrary {
         try {
             Locator element = waitForElement(selector, timeoutSeconds);
             element.click();
-//            log.debug("Clic sur l'élément: {}", selector);
         } catch (Exception e) {
             log.error("Impossible de cliquer sur l'élément: {}", selector);
             throw e;
@@ -172,66 +131,14 @@ public class PlaywrightElementLibrary {
         click("#" + id);
     }
 
-    /**
-     * Cliquer par texte visible
-     */
-    public void clickByText(String text) {
-        click("text=" + text);
-    }
-
-    /**
-     * Double-clic sur un élément
-     */
-    public void doubleClick(String selector) {
-        Locator element = waitForElement(selector, 10);
-        element.dblclick();
-    }
-
-    /**
-     * Clic droit sur un élément
-     */
-    public void rightClick(String selector) {
-        Locator element = waitForElement(selector, 10);
-        element.click(new Locator.ClickOptions().setButton(MouseButton.RIGHT));
-    }
-
-    /**
-     * Cliquer sur un élément spécifique dans une liste
-     */
-    public void clickNthElement(String selector, int index) {
-        Locator element = page.locator(selector).nth(index);
-        element.click();
-    }
-
     // ==================== MÉTHODES DE SAISIE ====================
-
-    /**
-     * Saisir du texte dans un champ
-     */
-    public void type(String selector, String text) {
-        type(selector, text, 10);
-    }
-
-    public void type(String selector, String text, int timeoutSeconds) {
-        try {
-            Locator field = waitForElement(selector, timeoutSeconds);
-            field.clear();
-            field.fill(text);
-        } catch (Exception e) {
-            log.error("Impossible de saisir dans l'élément: {}", selector);
-            throw e;
-        }
-    }
-
-    /**
-     * Saisir par ID
-     */
-    public void typeById(String id, String text) {
-        type("#" + id, text);
-    }
 
     public void humanTypeById(String id, String text) {
         typeHumanLike("#" + id, text);
+    }
+
+    public void typeById(String id, String text) {
+        typeNormal("#" + id, text);
     }
 
     public void humanTypeByXpath(String xpath, String text) {
@@ -242,11 +149,61 @@ public class PlaywrightElementLibrary {
         typeHumanLike("name" + name, text);
     }
 
-    /**
-     * Saisir par XPath
-     */
-    public void typeByXpath(String xpath, String text) {
-        type("xpath=" + xpath, text);
+    public void typeByLabel(String label, String text) {
+        typeByLabelElement(label, text);
+    }
+
+    public void typeByLabelElement(String label, String text) {
+        try {
+            Locator field = page.getByLabel(label, new Page.GetByLabelOptions().setExact(true));
+            field.clear();
+            field.pressSequentially(text, new Locator.PressSequentiallyOptions().setDelay(60));
+        } catch (Exception e) {
+            log.error("Impossible de saisir dans l'élément: {}{} ", label, text);
+            throw e;
+        }
+    }
+
+    public void clickByLabel(String label) {
+        clickByLabelElement(label);
+    }
+
+    public void clickByLabelElement(String label) {
+        try {
+            Locator field = page.getByLabel(label, new Page.GetByLabelOptions().setExact(true));
+            field.click();
+        } catch (Exception e) {
+            log.error("Impossible de saisir dans l'élément: {} ", label);
+            throw e;
+        }
+    }
+
+    public void clickByRole(String label) {
+        clickByRoleElement(label);
+    }
+
+    public void clickByRoleElement(String label) {
+        try {
+            Locator field = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName(label));
+            field.click();
+        } catch (Exception e) {
+            log.error("Impossible de cliquer sur l'élément: {} ", label);
+            throw e;
+        }
+    }
+
+    public void clickByTextElement(String label) {
+        clickByGetTextElement(label);
+    }
+
+    public void clickByGetTextElement(String label) {
+        try {
+            Locator field = page.getByText(label, new Page.GetByTextOptions().setExact(true));
+            field.click();
+        } catch (Exception e) {
+            log.error("Impossible de cliquer sur l'élément: {} ", label);
+            throw e;
+        }
     }
 
     /**
@@ -256,15 +213,17 @@ public class PlaywrightElementLibrary {
         Locator field = waitForElement(selector, 10);
         field.click();
         field.clear();
-
         for (char c : text.toCharArray()) {
-            field.press(String.valueOf(c));
-            try {
-                Thread.sleep(50 + (long)(Math.random() * 100));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            field.pressSequentially(String.valueOf(c));
+            randomWait(50, 150);
         }
+    }
+
+    public void typeNormal(String selector, String text) {
+        Locator field = waitForElement(selector, 10);
+        field.click();
+        field.clear();
+        field.fill(text);
     }
 
     /**
@@ -274,6 +233,73 @@ public class PlaywrightElementLibrary {
         Locator field = waitForElement(selector, 10);
         field.clear();
     }
+
+    // random wait (distribution gaussienne tronquée pour imiter un temps de réaction humain)
+    public void randomWait(int min, int max) {
+        double mean = (min + max) / 2.0;
+        double stdDev = (max - min) / 6.0;
+        int wait = (int) Math.round(mean + random.nextGaussian() * stdDev);
+        wait = Math.max(min, Math.min(max, wait));
+        page.waitForTimeout(wait);
+    }
+
+    //  HOVER HUMAIN (simple)
+    public void hover(Locator locator) {
+        locator.waitFor();
+        locator.hover();
+        randomWait(100, 300);
+    }
+
+    // ACTION COMBINÉE (clic + attente réseau)
+    public void clickAndWaitResponse(String selector, String urlPart) {
+        page.waitForResponse(response ->
+                        response.url().contains(urlPart) && response.status() == 200,
+                () -> {
+                    humanClick(selector);
+                }
+        );
+    }
+
+    public void humanClick(String selector) {
+        Locator locator = waitForElement(selector, 10);
+        locator.hover();
+        randomWait(100, 300);
+        locator.click();
+        randomWait(200, 600);
+    }
+
+    // CLICK HUMAIN AVANCÉ (mouvement souris réel)
+    public void humanClickAdvanced(String selector) {
+        Locator locator = waitForElement(selector, 10);
+        BoundingBox box = locator.boundingBox();
+        if (box == null) return;
+
+        double targetX = box.x + box.width / 2;
+        double targetY = box.y + box.height / 2;
+
+        // position de départ aléatoire
+        double currentX = targetX - 100 + random.nextInt(200);
+        double currentY = targetY - 100 + random.nextInt(200);
+
+        // déplacement progressif
+        for (int i = 0; i < 10; i++) {
+            currentX += (targetX - currentX) / 2;
+            currentY += (targetY - currentY) / 2;
+
+            page.mouse().move(currentX, currentY);
+            page.waitForTimeout(10 + random.nextInt(20));
+        }
+        randomWait(100, 300);
+        page.mouse().click(targetX, targetY);
+      randomWait(200, 500);
+    }
+
+    public void scrollPage(int min, int max) {
+        int delta = min + random.nextInt(max - min);
+        page.mouse().wheel(0, delta);
+        randomWait(200, 600);
+    }
+
 
     // ==================== MÉTHODES POUR SELECT/DROPDOWN ====================
 
@@ -430,6 +456,29 @@ public class PlaywrightElementLibrary {
         }
     }
 
+    // ==================== MÉTHODES PAR TITLE ====================
+
+    public Locator getByTitle(String title) {
+        return page.getByTitle(title).first();
+    }
+
+    public Locator getByTitleExact(String title) {
+        return page.getByTitle(title, new com.microsoft.playwright.Page.GetByTitleOptions().setExact(true)).first();
+    }
+
+    public void clickByTitle(String title) {
+        getByTitle(title).click();
+    }
+
+    public String getTextByTitle(String title) {
+        try {
+            return getByTitle(title).textContent().trim();
+        } catch (Exception e) {
+            log.error("Impossible de récupérer le texte de l'élément avec title: {}", title);
+            return "";
+        }
+    }
+
     // ==================== MÉTHODES D'EXTRACTION ====================
 
     /**
@@ -530,14 +579,14 @@ public class PlaywrightElementLibrary {
                 Page newPage = allPages.get(allPages.size() - 1);
                 newPage.waitForLoadState(LoadState.DOMCONTENTLOADED);
                 this.page = newPage;
-                log.info("✅ Basculé vers la nouvelle fenêtre existante : {}", newPage.url());
+                log.info("Basculé vers la nouvelle fenêtre existante : {}", newPage.url());
             } else {
                 // Si aucune nouvelle page détectée, on attend un court instant
                 log.warn("⚠️ Aucune nouvelle fenêtre détectée, attente courte...");
                 Page newPage = context.waitForPage(() -> {});
                 newPage.waitForLoadState(LoadState.DOMCONTENTLOADED);
                 this.page = newPage;
-                log.info("✅ Nouvelle fenêtre détectée après attente : {}", newPage.url());
+                log.info("Nouvelle fenêtre détectée après attente : {}", newPage.url());
             }
         } catch (Exception e) {
             log.error("Erreur lors du basculement vers la nouvelle fenêtre", e);
@@ -655,29 +704,6 @@ public class PlaywrightElementLibrary {
         }
     }
 
-    /**
-     * Attendre un temps fixe
-     */
-    public void wait(int seconds) {
-        try {
-            Thread.sleep(seconds * 1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    /**
-     * Attendre de manière aléatoire (comportement humain)
-     */
-    public void waitRandom(int minSeconds, int maxSeconds) {
-        try {
-            int waitTime = minSeconds + (int)(Math.random() * (maxSeconds - minSeconds));
-            Thread.sleep(waitTime * 1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
     // ==================== MÉTHODES MANQUANTES À AJOUTER ====================
 
     /**
@@ -685,40 +711,6 @@ public class PlaywrightElementLibrary {
      */
     public void scrollDown(int pixels) {
         page.evaluate("window.scrollBy(0, " + pixels + ")");
-        wait(1); // Petite attente après le scroll
-    }
-
-    /**
-     * Faire défiler vers le haut
-     */
-    public void scrollUp(int pixels) {
-        page.evaluate("window.scrollBy(0, -" + pixels + ")");
-        wait(1);
-    }
-
-    /**
-     * Faire défiler jusqu'en bas
-     */
-    public void scrollToBottom() {
-        page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
-        wait(1);
-    }
-
-    /**
-     * Faire défiler jusqu'en haut
-     */
-    public void scrollToTop() {
-        page.evaluate("window.scrollTo(0, 0)");
-        wait(1);
-    }
-
-    /**
-     * Faire défiler jusqu'à un élément
-     */
-    public void scrollToElement(String selector) {
-        Locator element = page.locator(selector).first();
-        element.scrollIntoViewIfNeeded();
-        wait(1);
     }
 
     /**
@@ -731,6 +723,21 @@ public class PlaywrightElementLibrary {
             log.error("Impossible de récupérer le texte de l'élément XPath: {}", xpath);
             return "";
         }
+    }
+
+    /**
+     * Obtenir le texte de tous les éléments correspondant à un XPath (ex: plusieurs formules/offres)
+     */
+    public List<String> getElementsTextByXpath(String xpath) {
+        List<String> textes = new ArrayList<>();
+        try {
+            for (Locator locator : page.locator("xpath=" + xpath).all()) {
+                textes.add(locator.textContent().trim());
+            }
+        } catch (Exception e) {
+            log.error("Impossible de récupérer les textes des éléments XPath: {}", xpath);
+        }
+        return textes;
     }
 
     /**
@@ -750,7 +757,6 @@ public class PlaywrightElementLibrary {
      */
     public void waitForPageLoad() {
         page.waitForLoadState(LoadState.NETWORKIDLE);
-        wait(1);
     }
 
     // ==================== MÉTHODES UTILITAIRES SUPPLÉMENTAIRES ====================
@@ -763,22 +769,6 @@ public class PlaywrightElementLibrary {
                 new Page.WaitForSelectorOptions()
                         .setState(WaitForSelectorState.VISIBLE)
                         .setTimeout(timeoutSeconds * 1000));
-    }
-
-    /**
-     * Méthode générique pour sélectionner une option par valeur
-     * @param selector Le sélecteur CSS ou autre du select
-     * @param value La valeur de l'option à sélectionner
-     */
-    public void selectByValue1(String selector, String value) {
-        try {
-            Locator selectLocator = page.locator(selector);
-            selectLocator.selectOption(value);
-            log.info("Option sélectionnée par valeur '{}' dans le select '{}'", value, selector);
-        } catch (Exception e) {
-            log.error("Erreur lors de la sélection par valeur '{}' dans '{}'", value, selector, e);
-            throw new RuntimeException("Échec de la sélection par valeur", e);
-        }
     }
 
     /**

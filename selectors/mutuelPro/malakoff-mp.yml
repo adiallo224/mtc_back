@@ -1,0 +1,42 @@
+# Sélecteurs pour Malakoff Humanis (Atout+) - Mutuelle Pro (TNS) (assuMutuelPro/MalakoffMProService)
+# Modifie ce fichier quand le site Malakoff change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+# Écrit d'après todo/mi/malakoff_indiv.txt (ATOUT+ TNS).
+
+connexion:
+  username_selector: "#login"
+  password_selector: "#pwd"
+  submit_selector: "#authentificateSubmit"
+
+navigation:
+  menu_tarification_selector: "h2.titre:text-is('Tarification')"
+  tarification_express_selector: "a[href='/navigation/oav-tarificateur']"
+  # ATOUT+ TNS = offre commerciale 628
+  atout_plus_tns_selector: "a[href*='idOffreCommerciale/628']"
+
+tarification:
+  date_effet_selector: "#DateEffetSouhaitee"
+  date_naissance_selector: "#DateNaissanceSouscripteur"
+  code_postal_selector: "#CodePostalSouscripteur"
+  regime_id: "RegimeSouscripteur"
+  ajouter_beneficiaire_selector: "#ajoutGroupeBeneficiaireTarifInfoSouscripteur"
+  # %s = index du bénéficiaire (0 pour le 1er ajouté)
+  lien_parente_id_template: "Beneficiaire_%s_LienParente"
+  regime_beneficiaire_id_template: "Beneficiaire_%s_Regime"
+  date_naissance_beneficiaire_template: "#Beneficiaire_%s_DateNaissance"
+  lien_conjoint: "Conjoint"
+  lien_enfant: "Enfant"
+  etape_suivante_selector: "#next"
+
+commission:
+  select_id: "levier_TauxCommission"
+  valeur: "Linéaire 12%"
+  # Bouton/img de la cagnotte (affiche le panneau contenant le coefficient)
+  cagnotte_toggle_selector: "#cagnotteDevis_AfficherCagnotteDevis"
+  coefficient_selector: "#cagnotteDevis_CoefficientFinancement"
+  coefficient_valeur: "1"
+  reinitialiser_selector: "#cagnotteDevis_BoutonReset"
+
+resultats:
+  # Ligne « Cotisation Mensuelle » hors option (l'autre ligne « avec options » fait doublon)
+  prix_selector: "tr.prixSansOption td[class*='prixCotisationSansOption'] > span.modelChampNote"

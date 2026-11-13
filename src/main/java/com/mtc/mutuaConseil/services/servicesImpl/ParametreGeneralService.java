@@ -38,6 +38,7 @@ public class ParametreGeneralService {
         parametreGeneral.setModeRecherche(parametreGeneralRequestDto.getModeRecherche());
         parametreGeneral.setHeurePurge(parametreGeneralRequestDto.getHeurePurge());
         parametreGeneral.setNbJours(parametreGeneralRequestDto.getNbJours());
+        parametreGeneral.setNavigateurPlaywright(parametreGeneralRequestDto.getNavigateurPlaywright());
         ParametreGeneral createdParametreGeneral = parametreGeneralRepository.save(parametreGeneral);
         return getParametreGeneralResponseDto(createdParametreGeneral);
     }
@@ -50,6 +51,7 @@ public class ParametreGeneralService {
         parametreGeneralResponseDto.setModeRecherche(createdParametreGeneral.getDossierImage());
         parametreGeneralResponseDto.setHeurePurge(createdParametreGeneral.getHeurePurge());
         parametreGeneralResponseDto.setNbJours(createdParametreGeneral.getNbJours());
+        parametreGeneralResponseDto.setNavigateurPlaywright(createdParametreGeneral.getNavigateurPlaywright());
         return parametreGeneralResponseDto;
     }
 
@@ -60,6 +62,7 @@ public class ParametreGeneralService {
         parametreGeneral.setModeRecherche(parametreGeneralDetails.getModeRecherche());
         parametreGeneral.setHeurePurge(parametreGeneralDetails.getHeurePurge());
         parametreGeneral.setNbJours(parametreGeneralDetails.getNbJours());
+        parametreGeneral.setNavigateurPlaywright(parametreGeneralDetails.getNavigateurPlaywright());
         return parametreGeneralRepository.save(parametreGeneral);
     }
 

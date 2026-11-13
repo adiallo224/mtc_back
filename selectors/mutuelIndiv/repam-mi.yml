@@ -1,0 +1,57 @@
+# Sélecteurs pour Repam - Mutuelle Individuelle (assuMutuelIndiv/RepamMIService)
+# Modifie ce fichier quand le site Repam change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  cookies_accept_selector: "[data-testid='acceptButton']"
+  username_xpath: "//input[@name='username']"
+  password_xpath: "//input[@name='password']"
+  submit_xpath: "//button[@type='submit']"
+  fermeture_popup_css: "button.nrg-button-tertiary"
+  sante_individuelle_css: "button[data-testid='action-component']"
+  sante_individuelle_texte: "Santé Individuelle"
+  nouvelle_proposition_xpath: "//button[.//div[text()='Nouvelle proposition']]"
+  oui_xpath: "//button[.//div[text()='Oui']]"
+
+offre:
+  carte_css: "div.shadow-md.rounded-lg"
+  carte_texte: "Santé Particulier"
+  bouton_texte: "Sélectionner cette offre"
+
+client:
+  date_effet_xpath: "//input[@placeholder='JJ/MM/AAAA']"
+  continuer_xpath: "//button[.//div[text()='Continuer']]"
+  is_member_xpath: "//input[@id='customer.isMember-1']"
+  nom_xpath: "//input[@name='customer.lastName']"
+  prenom_xpath: "//input[@name='customer.firstName']"
+  date_naissance_xpath: "//input[@name='customer.birthDate']"
+  code_postal_xpath: "//input[@name='customer.address.postCode']"
+  profession_dropdown_xpath: "//input[@type='hidden' and @name='customer.profession']/preceding-sibling::div[contains(@class,'-control')]"
+  ajouter_beneficiaire_xpath: "//button[.//div[text()='Ajouter un bénéficiaire']]"
+  label_conjoint_xpath: "//label[normalize-space()='Conjoint']"
+  label_enfant_xpath: "//label[normalize-space()='Enfant']"
+  beneficiaire_date_naissance_xpath: "(//input[contains(@name,'beneficiaries') and contains(@name,'birthDate')])[last()]"
+  alsace_moselle_conjoint_xpath: "//input[@id='beneficiaries.0.isAlsaceMoselle-1']"
+  alsace_moselle_enfant1_avec_conjoint_xpath: "//input[@id='beneficiaries.1.isAlsaceMoselle-1']"
+  alsace_moselle_enfant1_sans_conjoint_xpath: "//input[@id='beneficiaries.0.isAlsaceMoselle-1']"
+  alsace_moselle_enfant2_xpath: "//input[@id='beneficiaries.2.isAlsaceMoselle-1']"
+  enregistrer_continuer_xpath: "//button[.//div[normalize-space()='Enregistrer et continuer']]"
+
+regime:
+  dropdown_xpath: "(//input[@type='hidden' and contains(@name,'.regime')])[last()]/preceding-sibling::div[contains(@class,'-control')]"
+  option_xpath: "//div[@role='listbox']//div[@role='option' and .//span[normalize-space()='Régime général']]"
+
+# Libellés exacts des options du menu déroulant "profession" sur le site Repam.
+profession:
+  # %s est remplacé par le libellé choisi ci-dessous dans le code
+  option_xpath_template: "//div[@role='listbox']//div[@role='option' and .//span[normalize-space()='%s']]"
+  artisan: "Artisan"
+  chef_entreprise: "Chef d'entreprise"
+  agriculteur: "Exploitant Agricole"
+  cadre: "Cadre"
+  commercant: "Commerçant"
+  employe: "Cadre et employé de la fonction publique"
+  ouvrier: "Ouvrier"
+
+resultats:
+  grille_css: "div.grid.grid-cols-6"

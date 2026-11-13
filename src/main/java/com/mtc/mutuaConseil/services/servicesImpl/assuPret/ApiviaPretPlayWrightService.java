@@ -148,11 +148,11 @@ public class ApiviaPretPlayWrightService extends BasePlaywrightService implement
             elementLib.clickByXpath("//div[@id=\"demande_form_personnes_0_titre\"]//label[ contains(text(), 'Mme')]");
         }
 
-        elementLib.typeById("demande_form_personnes_0_prenom", flux.getPersonnes().get(index).getPrenom());
-        elementLib.typeById("demande_form_personnes_0_nom", flux.getPersonnes().get(index).getNom());
-        elementLib.typeByXpath("//input[@id='demande_form_personnes_0_datenaissance']", flux.getPersonnes().get(index).getDateNaissance());
+        elementLib.humanTypeById("demande_form_personnes_0_prenom", flux.getPersonnes().get(index).getPrenom());
+        elementLib.humanTypeById("demande_form_personnes_0_nom", flux.getPersonnes().get(index).getNom());
+        elementLib.humanTypeByXpath("//input[@id='demande_form_personnes_0_datenaissance']", flux.getPersonnes().get(index).getDateNaissance());
         waitThread(2);
-        elementLib.typeById("demande_form_personnes_0_villenaissance", flux.getPersonnes().get(index).getVille());
+        elementLib.humanTypeById("demande_form_personnes_0_villenaissance", flux.getPersonnes().get(index).getVille());
         elementLib.pressEnter();
         choixFumeur(flux, index);
         choixProfession(flux, index);
@@ -169,11 +169,11 @@ public class ApiviaPretPlayWrightService extends BasePlaywrightService implement
             } else if (flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Mme") || flux.getPersonnes().get(index).getCivilite().equalsIgnoreCase("Madame")){
                 elementLib.clickByXpath("//div[@id=\"demande_form_personnes_1_titre\"]//label[ contains(text(), 'Mme')]");
             }
-            elementLib.typeById("demande_form_personnes_1_prenom", flux.getPersonnes().get(index).getPrenom());
-            elementLib.typeById("demande_form_personnes_1_nom", flux.getPersonnes().get(index).getNom());
-            elementLib.typeByXpath("//input[@id='demande_form_personnes_1_datenaissance']", flux.getPersonnes().get(index).getDateNaissance());
+            elementLib.humanTypeById("demande_form_personnes_1_prenom", flux.getPersonnes().get(index).getPrenom());
+            elementLib.humanTypeById("demande_form_personnes_1_nom", flux.getPersonnes().get(index).getNom());
+            elementLib.humanTypeByXpath("//input[@id='demande_form_personnes_1_datenaissance']", flux.getPersonnes().get(index).getDateNaissance());
             waitThread(2);
-            elementLib.typeById("demande_form_personnes_1_villenaissance", flux.getPersonnes().get(index).getVille());
+            elementLib.humanTypeByXpath("demande_form_personnes_1_villenaissance", flux.getPersonnes().get(index).getVille());
             elementLib.pressEnter();
             choixFumeur(flux, index);
             choixProfession(flux, index);
@@ -186,9 +186,9 @@ public class ApiviaPretPlayWrightService extends BasePlaywrightService implement
 
     private void informationsPret(FluxData flux) {
         int index = 0;
-        elementLib.typeByXpath("demande_form_prets_0_montant", flux.getPrets().get(index).getMontantPret());
-        elementLib.typeByXpath("demande_form_prets_0_taux", flux.getPrets().get(index).getTaux());
-        elementLib.typeByXpath("demande_form_prets_0_duree", flux.getPrets().get(index).getDuree());
+        elementLib.humanTypeByXpath("demande_form_prets_0_montant", flux.getPrets().get(index).getMontantPret());
+        elementLib.humanTypeByXpath("demande_form_prets_0_taux", flux.getPrets().get(index).getTaux());
+        elementLib.humanTypeByXpath("demande_form_prets_0_duree", flux.getPrets().get(index).getDuree());
         if (flux.getPrets().get(index).getType().equalsIgnoreCase("Amortissable")) {
             choixTypePret(flux, index);
         }
@@ -196,33 +196,33 @@ public class ApiviaPretPlayWrightService extends BasePlaywrightService implement
             index = 1;
             waitThread(2);
             elementLib.clickByXpath("//button[contains(@class, 'btn-ajoutPret')]");
-            elementLib.typeById("demande_form_prets_1_montant", flux.getPrets().get(index).getMontantPret());
-            elementLib.typeById("demande_form_prets_1_taux", flux.getPrets().get(index).getTaux());
-            elementLib.typeById("demande_form_prets_1_duree", flux.getPrets().get(index).getDuree());
+            elementLib.humanTypeById("demande_form_prets_1_montant", flux.getPrets().get(index).getMontantPret());
+            elementLib.humanTypeById("demande_form_prets_1_taux", flux.getPrets().get(index).getTaux());
+            elementLib.humanTypeById("demande_form_prets_1_duree", flux.getPrets().get(index).getDuree());
             if (flux.getPrets().get(index).getType().equalsIgnoreCase("Amortissable")) {
                 choixTypePret(flux, index);
             }
         }
-        elementLib.typeById("demande_form_fraiscourtage", "15");
+        elementLib.humanTypeById("demande_form_fraiscourtage", "15");
     }
 
     private void informationsComplementaires(FluxData flux) {
         int index = 0;
-        elementLib.typeById("demande_form_personnes_0_adresse1", flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
+        elementLib.humanTypeById("demande_form_personnes_0_adresse1", flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
 //        WebElement inputComplement = waitForElement(driver, By.id("demande_form_personnes_0_adresse2"), 20, 1);
 //        inputComplement.sendKeys("Bravo");
-        elementLib.typeById("demande_form_personnes_0_cp", flux.getPersonnes().get(index).getCodePostal());
-        elementLib.typeById("demande_form_personnes_0_ville", flux.getPersonnes().get(index).getVille());
-        elementLib.typeById("demande_form_personnes_0_email", flux.getPersonnes().get(index).getEmail());
-        elementLib.typeById("demande_form_personnes_0_tel1", flux.getPersonnes().get(index).getTelephone());
+        elementLib.humanTypeById("demande_form_personnes_0_cp", flux.getPersonnes().get(index).getCodePostal());
+        elementLib.humanTypeById("demande_form_personnes_0_ville", flux.getPersonnes().get(index).getVille());
+        elementLib.humanTypeById("demande_form_personnes_0_email", flux.getPersonnes().get(index).getEmail());
+        elementLib.humanTypeById("demande_form_personnes_0_tel1", flux.getPersonnes().get(index).getTelephone());
         if (flux.getPersonnes().size() == 2) {
             index = 1;
-            elementLib.typeById("demande_form_personnes_1_adresse1",flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
-            elementLib.typeById("demande_form_personnes_1_adresse2", "");
-            elementLib.typeById("demande_form_personnes_1_cp", flux.getPersonnes().get(index).getCodePostal());
-            elementLib.typeById("demande_form_personnes_1_ville", flux.getPersonnes().get(index).getVille());
-            elementLib.typeById("demande_form_personnes_1_email", flux.getPersonnes().get(index).getEmail());
-            elementLib.typeById("demande_form_personnes_1_tel1", flux.getPersonnes().get(index).getTelephone());
+            elementLib.humanTypeById("demande_form_personnes_1_adresse1",flux.getPersonnes().get(index).getNumeroVoie() + " " + flux.getPersonnes().get(index).getNomVoie());
+            elementLib.humanTypeById("demande_form_personnes_1_adresse2", "");
+            elementLib.humanTypeById("demande_form_personnes_1_cp", flux.getPersonnes().get(index).getCodePostal());
+            elementLib.humanTypeById("demande_form_personnes_1_ville", flux.getPersonnes().get(index).getVille());
+            elementLib.humanTypeById("demande_form_personnes_1_email", flux.getPersonnes().get(index).getEmail());
+            elementLib.humanTypeById("demande_form_personnes_1_tel1", flux.getPersonnes().get(index).getTelephone());
         }
         choixValidationSecumut(flux);
 //        try {

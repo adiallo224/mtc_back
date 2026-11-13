@@ -25,4 +25,5 @@ public class PersonneRequestDTO {
     private String statutProfession;
     private String professionSpecifique;
     private String profession;
+    private Boolean autoEntrepreneur;
 }

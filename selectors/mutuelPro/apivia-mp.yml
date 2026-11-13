@@ -1,0 +1,44 @@
+# Sélecteurs pour Apivia - Mutuelle Pro (assuMutuelPro/ApiviaMProService)
+# Parcours TNS : Nos offres > Santé individuelle > Nouvelle tarification > régime TNS > Vitamin3-Pro > niveaux Vitamin4 et 5
+# (cf. process_mutual_pro.txt). Même site que la mutuelle individuelle (selectors/mutuelIndiv/apivia-mi.yml).
+# À VÉRIFIER sur le site : regime_tns_valeur, resultats.niveaux (correspondance Vitamin4/5 <-> "Niveau N").
+
+connexion:
+  username_id: username
+  password_id: password
+  bouton_connexion_label: Connexion
+
+navigation:
+  nos_offres_text: "Nos offres"
+  sante_individuelle_xpath: "//div[@data-test='santé - individuelle']//a[@data-test='new']"
+
+devoir_conseil:
+  checkbox_id: tarification_recueilBesoins_0
+  switch_label_xpath: "//span[@class='switch-label']"
+
+beneficiaires:
+  code_postal_id: tarification_codePostal
+  date_effet_id: tarification_dateEffet
+  assure_date_naissance_id: tarification_assure_dateNaissance
+  assure_regime_id: tarification_assure_regime
+  conjoint_date_naissance_id: tarification_conjoint_dateNaissance
+  conjoint_regime_id: tarification_conjoint_regime
+  regime_tns_valeur: "Travailleur non salarié"
+  ajouter_label: "Ajouter un bénéficiaire"
+  enfant0_date_naissance_id: tarification_beneficiaires_0_dateNaissance
+  enfant0_regime_id: tarification_beneficiaires_0_regime
+  enfant1_date_naissance_id: tarification_beneficiaires_1_dateNaissance
+  enfant1_regime_id: tarification_beneficiaires_1_regime
+
+couverture:
+  # Radio value="VITAMIN_3_PRO_A2M" (id tarification_produit_2) ; on clique son label "Vitamin3 - PRO"
+  vitamin3_pro_xpath: "//input[@value='VITAMIN_3_PRO_A2M']/following-sibling::label"
+
+calcul:
+  bouton_id: tarification_tarif
+
+resultats:
+  # Numéros de niveau à lire (Vitamin4 et Vitamin5), séparés par des virgules
+  niveaux: "4,5"
+  # %d est remplacé par le numéro de niveau dans le code
+  prix_selector_template: "tr[data-tarificateur--sante--sante-individuelle-apivia--tarification--tarifs-target='tarifsContainer'] td[data-niveau='Niveau %d'] .formule_prix"

@@ -15,5 +15,6 @@ public class CompteResponseDto {
     private String source;
     private Boolean actif;
     private int niveau;
+    private Integer ordre;
 
 }

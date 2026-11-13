@@ -1,0 +1,38 @@
+# Sélecteurs pour ECA Heomie - Mutuelle Individuelle (assuMutuelIndiv/EcaHeomieMlService)
+# Modifie ce fichier quand le site Heomie change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  login_id: login-name
+  password_id: login-password
+  submit_xpath: "//form//button[@type='submit']"
+
+navigation:
+  nouveau_devis_particulier_xpath: "//a[@href='https://partenaire.heomi.fr/nouveau-devis/particulier']"
+  presentation_sante_xpath: "//a[@href='https://partenaire.heomi.fr/particulier/presentation/SANTE']"
+  nouveau_devis_sante_xpath: "//a[@href='https://partenaire.heomi.fr/particulier/nouveauDevis/SANTE']"
+  calculer_tarif_xpath: "//*[@id='calculer_tarif']"
+
+contrat:
+  date_effet_id: date_effet_sante
+  regime_select_id: regime_social_sante
+  regime_valeur: "Régime Général"
+  date_naissance_assure_id: dn_assure
+  has_conjoint_checkbox_id: has_conjoint_sante-0
+  date_naissance_conjoint_id: dn_conjoint
+  code_postal_id: code_postal
+  nb_enfants_select_id: nbr_enfants_sante
+  date_naissance_enfant1_id: dn_enfant_sante_1
+  date_naissance_enfant2_id: dn_enfant_sante_2
+  budget_id: budget_entre_50_100
+  couverture_sante_non_id: couverture_sante_non
+  beneficiaire_css_non_id: beneficiaire_css_non
+  soins_generaux_faible_id: soins_generaux_faible
+  hospitalisation_faible_id: hospitalisation_faible
+  optique_faible_id: optique_faible
+  dentaire_faible_id: dentaire_faible
+  appareil_auditif_faible_id: appareil_auditif_faible
+  medecines_douces_non_id: medecines_douces_non
+
+resultats:
+  cout_xpath: "//*[@id='tarif_sante_OPTION_BUDGET_150_B']"

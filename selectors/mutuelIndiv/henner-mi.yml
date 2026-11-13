@@ -1,0 +1,44 @@
+# Sélecteurs pour Henner - Mutuelle Individuelle (assuMutuelIndiv/HennerMlService)
+# Site en Angular Material : XPath absolus fragiles, sujets à casser souvent -- vérifier
+# celui-ci en premier si le scraping Henner échoue.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  accept_cookies_label: "TOUT ACCEPTER"
+  username_id: mat-input-0
+  password_id: mat-input-1
+  connexion_text: "Se connecter"
+
+navigation:
+  creation_devis_selector: "a[title=\"Création d'un devis\"]"
+  particulier_xpath: "//span[normalize-space()='PARTICULIER']"
+  sante_text: "Santé"
+  tarifer_text: "TARIFER"
+
+contrat:
+  date_naissance_xpath: "//input[@data-placeholder='Date de naissance']"
+  code_postal_label: "Code postal"
+  nom_label: "Nom (facultatif)"
+  prenom_label: "Prénom (facultatif)"
+  valider_label: "VALIDER"
+
+devis_sante:
+  date_effet_xpath: "//input[@data-placeholder=\"Date d'effet\"]"
+  regime_assure_xpath: "//span[normalize-space()='Régime']"
+  regime_options_xpath: "//div[@role='listbox']//mat-option[@role='option']"
+  regime_valeur: "Régime Général"
+  ajouter_conjoint_text: "Ajouter un conjoint"
+  ajouter_enfant_text: "Ajouter un enfant"
+  conjoint_date_naissance_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input"
+  conjoint_regime_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[2]/div/div/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span"
+  enfant1_date_naissance_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[1]/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input"
+  enfant1_regime_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[1]/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span"
+  enfant2_date_naissance_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[2]/div[2]/div[1]/mat-form-field/div/div[1]/div[1]/input"
+  enfant2_regime_xpath: "/html/body/app-root/app-auth/div/div/div/div/app-calculator/div/main/app-indiv/app-indiv-recap/app-indiv-client-info/div/div/div[2]/div/div/div/app-indiv-form/div/form/div[1]/div/div[3]/div/div[2]/div[2]/div[2]/mat-form-field/div/div[1]/div/mat-select/div/div[1]/span"
+
+resultats:
+  formule_active_css: ".henner-bar.active"
+  formule_active_ancestor_xpath: "ancestor::div[contains(@class,'indiv-pricing--content--bloc-item')]"
+  formule_active_montant_css: ".indiv-pricing--content--bloc-item-element-top--price-amount"
+  formule_label_css: ".indiv-pricing--content--bloc-item-element-levels-label"
+  formule_recherchee_texte: "Bien-être 2"

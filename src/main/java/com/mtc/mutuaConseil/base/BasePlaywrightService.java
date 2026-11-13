@@ -1,11 +1,14 @@
 package com.mtc.mutuaConseil.base;
 
 import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.Geolocation;
 import com.microsoft.playwright.options.LoadState;
+import com.microsoft.playwright.options.Position;
 import com.microsoft.playwright.options.ScreenshotType;
 import com.microsoft.playwright.options.SelectOption;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import com.mtc.mutuaConseil.models.Tarif;
+import com.mtc.mutuaConseil.repositories.ParametreGeneralRepository;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -19,6 +22,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.nio.file.Paths;
 
+import static java.util.Objects.isNull;
+
 public abstract class BasePlaywrightService {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
@@ -30,16 +35,63 @@ public abstract class BasePlaywrightService {
     @Autowired
     private TarifService tarifService;
 
+    @Autowired
+    private ParametreGeneralRepository parametreGeneralRepository;
+
+    private BrowserType getConfiguredBrowserType() {
+        return parametreGeneralRepository.findAll().stream()
+                .findFirst()
+                .map(pg -> {
+                    String nav = pg.getNavigateurPlaywright();
+                    if (isNull(nav) || nav.isBlank()) return BrowserType.PLAYWRIGHT_CHROMIUM;
+                    try { return BrowserType.valueOf(nav); }
+                    catch (IllegalArgumentException e) { return BrowserType.PLAYWRIGHT_CHROMIUM; }
+                })
+                .orElse(BrowserType.PLAYWRIGHT_CHROMIUM);
+    }
+
     protected void initializeBrowser() {
         initializeBrowser(false);
     }
 
     protected void initializeBrowser(boolean headless) {
         playwright = Playwright.create();
-        browser = playwright.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
-                .setHeadless(headless)
-                .setArgs(java.util.List.of("--start-maximized")));
-        BrowserContext context = browser.newContext(new Browser.NewContextOptions().setViewportSize(null));
+        BrowserType browserType = getConfiguredBrowserType();
+        switch (browserType) {
+            case PLAYWRIGHT_CHROME:
+                browser = playwright.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
+                        .setHeadless(headless)
+                        .setChannel("chrome")
+                        .setArgs(java.util.List.of("--start-maximized")));
+                break;
+            case PLAYWRIGHT_EDGE:
+                browser = playwright.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
+                        .setHeadless(headless)
+                        .setChannel("msedge")
+                        .setArgs(java.util.List.of("--start-maximized")));
+                break;
+            case PLAYWRIGHT_FIREFOX:
+                browser = playwright.firefox().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
+                        .setHeadless(headless));
+                break;
+            default:
+                browser = playwright.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions()
+                        .setHeadless(headless)
+                        .setArgs(java.util.List.of("--start-maximized")));
+                break;
+        }
+
+        BrowserProfile profile = FingerprintFactory.randomProfile(browserType);
+        log.info("Profil utilisé : {}", profile.name());
+
+        BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+                .setUserAgent(profile.userAgent())
+                .setLocale(profile.locale())
+                .setTimezoneId(profile.timezone())
+                .setViewportSize(null)
+                .setGeolocation(new Geolocation(profile.latitude(), profile.longitude()))
+                .setPermissions(java.util.List.of("geolocation")));
+        context.addInitScript(FingerprintFactory.stealthScript(profile));
         page = context.newPage();
         elementLib = new PlaywrightElementLibrary(page);
     }
@@ -57,7 +109,7 @@ public abstract class BasePlaywrightService {
 
     protected void humanLikeWait() {
         try {
-            Thread.sleep(1000 + (long)(Math.random() * 2000));
+            Thread.sleep(1000 + (long)(Math.random() * 1000));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -65,7 +117,7 @@ public abstract class BasePlaywrightService {
 
     protected void waitThread(int seconds) {
         try {
-            Thread.sleep(seconds * 1000);
+            Thread.sleep(seconds * 1000L);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -309,6 +361,10 @@ public abstract class BasePlaywrightService {
         pressKey("Enter");
     }
 
+    protected void clickBody() {
+        page.locator("body").click(new Locator.ClickOptions().setForce(true).setPosition(new Position(5, 5)));
+    }
+
     protected void pressTab() {
         pressKey("Tab");
     }
@@ -392,6 +448,59 @@ public abstract class BasePlaywrightService {
         } catch (Exception e) {
             log.error("Erreur lors de la tentative de clic sur '{}': {}", selector, e.getMessage());
         }
+    }
+
+    /** Âge en années pleines à partir d'une date au format dd/MM/yyyy. */
+    protected int ageEn(String dateNaissance) {
+        return java.time.Period.between(
+                java.time.LocalDate.parse(dateNaissance, java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                java.time.LocalDate.now()).getYears();
+    }
+
+    /**
+     * Lit le premier montant en euros de chaque ligne/carte dont le libellé figure dans
+     * {@code libellesPipe} (ex: "Equilibre 5|Equilibre 6"). {@code rowSelectorTemplate} contient
+     * un {@code %s} remplacé par le libellé. Les libellés introuvables sont ignorés.
+     */
+    protected java.util.List<String> prixParLibelle(String rowSelectorTemplate, String libellesPipe) {
+        java.util.List<String> prix = new java.util.ArrayList<>();
+        java.util.regex.Pattern montant = java.util.regex.Pattern.compile("\\d[\\d\\s.,]*\\s?€");
+        for (String libelle : libellesPipe.split("\\|")) {
+            Locator row = page.locator(String.format(rowSelectorTemplate, libelle.trim()));
+            if (row.count() == 0) {
+                log.warn("Formule introuvable : '{}'", libelle);
+                continue;
+            }
+            String texte = row.first().innerText().replace(' ', ' ');
+            java.util.regex.Matcher m = montant.matcher(texte);
+            if (m.find()) {
+                prix.add(m.group().trim());
+            } else {
+                log.warn("Montant introuvable pour '{}' : '{}'", libelle, texte);
+            }
+        }
+        return prix;
+    }
+
+    /**
+     * Pause pour une saisie manuelle (ex: code SMS) : attend que l'élément {@code selector}
+     * (le champ du code) disparaisse, c'est-à-dire que l'utilisateur ait validé le code.
+     * Si le champ n'apparaît pas dans les 10 premières secondes, aucune 2FA n'est demandée.
+     */
+    protected void waitForManualInput(String selector, int timeoutSeconds) {
+        Locator field = page.locator(selector).first();
+        try {
+            field.waitFor(new Locator.WaitForOptions()
+                    .setState(WaitForSelectorState.VISIBLE)
+                    .setTimeout(10_000));
+        } catch (PlaywrightException e) {
+            log.info("Pas de saisie manuelle requise (champ '{}' absent)", selector);
+            return;
+        }
+        log.warn("Saisie manuelle requise : saisissez le code dans le navigateur ({} s max)", timeoutSeconds);
+        field.waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.HIDDEN)
+                .setTimeout(timeoutSeconds * 1000.0));
     }
 
 }

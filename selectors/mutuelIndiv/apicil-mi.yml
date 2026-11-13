@@ -1,0 +1,47 @@
+# Sélecteurs pour Apicil (MyVeralti) - Mutuelle Individuelle (assuMutuelIndiv/ApicilMIService)
+# Modifie ce fichier quand le site Apicil change -- pas besoin de recompiler.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+# A VERIFIER sur le site réel : connexion.* (hors login/mot de passe, repris de l'ancien code Selenium),
+# totp.*, projet.*, tarification.* et resultats.* ont été écrits à partir de process_mutual_particuliers.txt.
+
+connexion:
+  cookie_accept_selector: "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
+  username_selector: "#sfdc_username_container input"
+  password_selector: "#sfdc_password_container input"
+  login_button_selector: ".salesforceIdentityLoginForm2 button"
+
+totp:
+  # Champ de saisie du code Authenticator + bouton de validation
+  input_selector: "input[autocomplete='one-time-code'], input[name*='code' i], input[name*='token' i]"
+  valider_label: "Valider"
+
+navigation:
+  nouveau_projet_text: "Nouveau projet"
+  suivant_label: "Suivant"
+
+projet:
+  particuliers_text: "Les particuliers"
+  nom_label: "Nom"
+  prenom_label: "Prénom"
+  date_naissance_label: "Date de naissance"
+  civilite_monsieur_text: "Monsieur"
+  civilite_madame_text: "Madame"
+  code_postal_label: "Code postal"
+  ville_label: "Ville"
+
+tarification:
+  metier_sante_text: "SANTE"
+  sante_100_oui_selector: "label:has-text('100% santé') >> text=Oui"
+  tarifer_label: "TARIFER"
+  date_effet_label: "Date d'effet"
+  ajouter_conjoint_label: "AJOUTER CONJOINT"
+  ajouter_enfant_label: "ENFANTS"
+  # Après chaque ajout (conjoint/enfant), le code remplit le DERNIER champ visible correspondant
+  nom_beneficiaire_selector: "input[name*='nom' i]:not([name*='prenom' i]):visible"
+  prenom_beneficiaire_selector: "input[name*='prenom' i]:visible"
+  naissance_beneficiaire_selector: "input[name*='naissance' i]:visible"
+
+resultats:
+  # Libellés des formules à relever (séparés par |). %s = libellé dans le template de ligne.
+  formules: "Equilibre 5|Equilibre 6|Sérénité 4|Sérénité 5"
+  ligne_template: "tr:has-text('%s')"

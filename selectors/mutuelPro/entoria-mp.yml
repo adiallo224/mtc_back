@@ -1,0 +1,53 @@
+# Sélecteurs pour Entoria - Mutuelle Pro (assuMutuelPro/EntoriaMutuelProService)
+# Site Angular Material : les ids mat-input-N dépendent de l'ordre des champs de chaque page.
+# Entrées marquées "À VÉRIFIER" : posées d'après la description du parcours, sans le HTML de la page.
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  # Formulaire Azure B2C (localAccountForm) : identifiant + mot de passe.
+  username_id: UserId
+  password_id: password
+  submit_id: next
+
+navigation:
+  offres_xpath: "//label[contains(text(), \"Offres\")]"
+  # Bouton "Tarifer" de la carte produit "Santé TNS" (#offer2 de la 1re ligne d'offres).
+  sante_tns_tarifer_xpath: "//div[contains(@class,'product')][.//div[@class='title'][normalize-space()='Santé TNS']]//div[contains(@class,'action-bloc')]"
+
+contrat:
+  # Sélecteurs sur les composants Angular (les ids mat-input-N changent selon l'ordre de rendu).
+  date_naissance_selector: "app-date-component input"
+  profession_selector: "app-infos-client-profession input"
+  statut_selector: "app-infos-client-statut input"
+  regime_selector: "app-infos-client-regime-obligatoire input"
+  departement_selector: "app-infos-client-departement input"
+  # Valeurs fixes (historiques) : le parcours Pro cible un gérant majoritaire au régime général.
+  statut_valeur: "Gérant majoritaire"
+  regime_valeur: "Régime général"
+  # Lien en bas de la liste des professions (~430 entrées) : "Vous n'avez pas trouvé la profession ?"
+  profession_introuvable_selector: "div.profession-introuvable"
+  # À VÉRIFIER : champ de saisie et bouton de validation affichés après ce clic (HTML non fourni).
+  profession_introuvable_input_selector: "mat-dialog-container input, .profession-introuvable-form input"
+  profession_introuvable_valider_selector: "mat-dialog-container button:has-text('Valider')"
+  # Panneau d'autocomplétion Material (valable pour l'ancien et le nouveau rendu MDC).
+  options_xpath: "//div[@role='listbox']//mat-option"
+  # "Créateur / repreneur d'entreprise ?" est déjà sur "Non" par défaut : on n'y touche pas.
+  # À VÉRIFIER : question "client assuré en prévoyance" (absente du HTML fourni, apparaît peut-être
+  # après la saisie du statut). Cliquée seulement si elle est présente.
+  prevoyance_non_xpath: "(//*[contains(text(),'prévoyance')]/following::mat-button-toggle[contains(normalize-space(.),'Non')])[1]"
+  # Bouton de validation du formulaire (désactivé tant que le formulaire est invalide).
+  tarifer_xpath: "//button[.//span[normalize-space()='suivant']]"
+
+famille:
+  # À VÉRIFIER : pas de dates de naissance, uniquement la présence d'un conjoint et le nombre d'enfants.
+  conjoint_selector: "text=/^\\s*conjoint\\s*$/i"
+  enfants_selector: "text=/^\\s*enfants?\\s*$/i"
+  # À VÉRIFIER : bouton "+" qui ajoute un enfant (cliqué autant de fois que d'enfants).
+  enfant_plus_xpath: "(//*[contains(text(),'nfant')]/following::button[contains(.,'+') or contains(@aria-label,'jouter') or contains(@class,'plus')])[1]"
+
+resultats:
+  section_xpath: "(//section[@class='pc-results__recommendations'])[1]"
+  # Niveaux à retenir, dans l'ordre d'affichage souhaité (séparés par |).
+  niveaux: "Confort|Sérénité|Excellence"
+  # À VÉRIFIER : %1$s = libellé du niveau ; on prend le plus petit bloc contenant le libellé ET un prix.
+  ligne_xpath: "xpath=//*[.//span[@class='pc-price']][contains(normalize-space(.),'%1$s')][not(.//*[.//span[@class='pc-price']][contains(normalize-space(.),'%1$s')])]"

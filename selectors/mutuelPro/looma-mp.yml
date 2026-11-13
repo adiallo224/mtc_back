@@ -1,0 +1,57 @@
+# Sélecteurs pour Looma - Mutuelle Pro / TNS (assuMutuelPro/LoomaMProService)
+# Pas d'équivalent mutuelIndiv pour ce fournisseur (Looma est spécifique aux TNS).
+# Redémarrage NON requis : le fichier est rechargé automatiquement (détection par date de modification).
+
+connexion:
+  identifiant_id: identifiant
+  password_id: password
+  connexion_xpath: "//button[normalize-space()='Se connecter']"
+
+navigation:
+  projets_xpath: "//span[normalize-space()='Projets']"
+  nouveau_projet_xpath: "//a[normalize-space()='Nouveau projet']"
+  tns_xpath: "//img[@alt='TNS']"
+  etape_suivante_id: etape-suivante
+
+profil:
+  nom_id: nom
+  prenom_id: prenom
+  date_naissance_id: dns
+  suivant_id: profil-client
+
+garantie:
+  risque_select_id: risque
+  risque_valeur: "2"
+  date_effet_id: date_effet
+  situation_select_id: situation_id
+  situation_seul_valeur: "2"
+  situation_couple_valeur: "1"
+  ajouter_enfant_xpath: "//div[@class='block bt plus']"
+  adresse_id: ad1
+  ville_id: ville_nom
+  ville_suggestions_container_id: "#ui-id-2"
+  ville_suggestion_item_css: ".ui-menu-item-wrapper"
+  statut_select_id: statut_id
+  siret_id: soc_siret
+  code_naf_id: soc_naf_code
+  naf_suggestions_container_id: "#ui-id-3"
+  naf_suggestion_item_css: ".ui-menu-item-wrapper"
+
+# Valeurs techniques du <select> "statut_id" par profession spécifique exacte (correspondance stricte).
+# Si une profession n'a pas d'entrée ici, le code logue un avertissement et laisse le champ vide
+# (comportement d'origine préservé) plutôt que de planter tout le scraping.
+statuts:
+  "Chef d'entreprise": "1"
+  "Travailleur indépendant": "2"
+  "Profession libérale": "3"
+  "Auto Entrepreneur": "4"
+  "Artisan": "5"
+  "Commercant": "6"
+  "Mandataire non rémunéré": "7"
+  "Agriculteur": "9"
+  "Conjoint collaborateur": "10"
+
+resultats:
+  lignes_css: "tbody tr"
+  # %d est remplacé par le niveau dans le code
+  cellule_niveau_template: "td.niveau%d"

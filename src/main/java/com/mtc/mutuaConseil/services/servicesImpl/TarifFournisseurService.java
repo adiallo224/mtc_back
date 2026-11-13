@@ -17,13 +17,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.nonNull;
+
 @Service
 public class TarifFournisseurService {
 
     private final Logger logger = LoggerFactory.getLogger(TarifFournisseurService.class);
     private final Map<String, LaunchedService> serviceMap;
 
-    // Injection des services via le constructeur
     @Autowired
     public TarifFournisseurService(
             AfiescaService afiescaService,
@@ -41,31 +42,36 @@ public class TarifFournisseurService {
             SWLService swlService,
             UtwinPretService utwinPretService,
             // Mutuelle pro
-            AlptisMutuelProService alptisMutuelProService,
-            AMI3FMutuelProService ami3FMutuelProService,
-            AprilMutuelProService aprilMutuelProService,
-            ApiviaMutuelProService apiviaMutuelProService,
-            ApicilMutuelProService apicilMutuelProService,
-            ECAMutuelProService ecaMutuelProService,
-            EntoriaMutuelProService entoriaMutuelProService,
-            FFAMutuelProService ffaMutuelProService,
-            HarmonieMutuelProService harmonieMutuelProService,
-            HennerMutuelProService hennerMutuelProService,
-            LoomaMutuelProService loomaMutuelProService,
-            QuatremTNSMutuelProService quatremTNSMutuelProService,
-            RepamMutuelProService repamMutuelProService,
-            SmisoMutuelProService smisoMutuelProService,
+            AlptisMProService alptisMProService,
+            Ami3fMProService ami3FMProService,
+            AprilMutuelProService aprilMProService,
+            ApiviaMProService apiviaMProService,
+            ApicilMutuelProService apicilMProService,
+            EcaHeomieMProService ecaMProService,
+            EntoriaMutuelProService entoriaMProService,
+            FFAMProService ffaMProService,
+            HarmonieMutuelProService harmonieMProService,
+            HennerMProService hennerMProService,
+            HodevaMProService hodevaMProService,
+            LoomaMProService loomaMProService,
+            MalakoffMProService malakoffMProService,
+            QuatremMProService quatremMProService,
+            RepamMProService repamMProService,
+            SmisoMProService smisoMProService,
             // Mutuelle indiv
-            AlptisMutuelIndivPlayWrightService alptisMutuelIndivService,
-            AprilMutuelIndivService aprilMutuelIndivService,
-            AMI3FMutuelIndivService ami3FMutuelIndivService,
-            ApicilMutuelIndivService ApicilMutuelIndivService,
-            ApiviaMutuelIndivService apiviaMutuelIndivService,
-            ECAMutuelIndivService ecaMutuelIndivService,
-            HennerMutuelIndivService hennerMutuelIndivService,
-            QuatremIndivMutuelIndivService quatremIndivMutuelIndivService,
-            RepamMutuelIndivService repamMutuelIndivService,
-            SmisoMutuelIndivService smisoMutuelIndivService
+            AprilMIService aprilMIService,
+            ApicilMIService apicilMIService,
+            AlptisMIService alptisMIService,
+            Ami3fMIService ami3fMIService,
+            ApiviaMIService apiviaMIService,
+            EcaHeomieMlService ecaHeomieMIService,
+            HennerMlService hennerMIService,
+            QuatremMIService quatremMIService,
+            RepamMIService repamMIService,
+            SmisoMIService smisoMIService,
+            FFAMIService ffaMIService,
+            HodevaMIService hodevaMIService,
+            MalakoffMIService malakoffMIService
     ) {
         // Initialisation du map avec les services disposables
         // Mutuelle prêt
@@ -85,41 +91,53 @@ public class TarifFournisseurService {
         this.serviceMap.put("Swlife_Prêt", swlService);
         this.serviceMap.put("Utwin_Prêt", utwinPretService);
         // Mutuelle pro
-        this.serviceMap.put("Alptis_Mutuelle_Pro", alptisMutuelProService);
-        this.serviceMap.put("Ami3f_Mutuelle_Pro", ami3FMutuelProService);
-        this.serviceMap.put("Apicil_Mutuelle_Pro", apicilMutuelProService);
-        this.serviceMap.put("Apivia_Mutuelle_Pro", apiviaMutuelProService);
-        this.serviceMap.put("April_Mutuelle_Pro", aprilMutuelProService);
-        this.serviceMap.put("Eca_Mutuelle_Pro", ecaMutuelProService);
-        this.serviceMap.put("Entoria_Mutuelle_Pro", entoriaMutuelProService);
-        this.serviceMap.put("Ffa_Mutuelle_Pro", ffaMutuelProService);
-        this.serviceMap.put("Harmonie_Mutuelle_Pro", harmonieMutuelProService);
-        this.serviceMap.put("Henner_Mutuelle_Pro", hennerMutuelProService);
-        this.serviceMap.put("Looma_Mutuelle_Pro", loomaMutuelProService); //à revoir
-        this.serviceMap.put("Quatrem_Mutuelle_Pro", quatremTNSMutuelProService);
-        this.serviceMap.put("Repam_Mutuelle_Pro", repamMutuelProService);
-        this.serviceMap.put("Smiso_Mutuelle_Pro", smisoMutuelProService);
+        this.serviceMap.put("Alptis_Mutuelle_Pro", alptisMProService);
+        this.serviceMap.put("Ami3f_Mutuelle_Pro", ami3FMProService);
+        this.serviceMap.put("Apicil_Mutuelle_Pro", apicilMProService);
+        this.serviceMap.put("Apivia_Mutuelle_Pro", apiviaMProService);
+        this.serviceMap.put("April_Mutuelle_Pro", aprilMProService);
+        this.serviceMap.put("Eca_Mutuelle_Pro", ecaMProService);
+        this.serviceMap.put("Entoria_Mutuelle_Pro", entoriaMProService);
+        this.serviceMap.put("Ffa_Mutuelle_Pro", ffaMProService);
+        this.serviceMap.put("Harmonie_Mutuelle_Pro", harmonieMProService);
+        this.serviceMap.put("Henner_Mutuelle_Pro", hennerMProService);
+        this.serviceMap.put("Hodeva_Mutuelle_Pro", hodevaMProService);
+        this.serviceMap.put("Looma_Mutuelle_Pro", loomaMProService); //à revoir
+        this.serviceMap.put("Malakoff_Mutuelle_Pro", malakoffMProService);
+        this.serviceMap.put("Quatrem_Mutuelle_Pro", quatremMProService);
+        this.serviceMap.put("Repam_Mutuelle_Pro", repamMProService);
+        this.serviceMap.put("Smiso_Mutuelle_Pro", smisoMProService);
         // Mutuelle Indiv
-        this.serviceMap.put("Alptis_Mutuelle_Indiv", alptisMutuelIndivService);
-        this.serviceMap.put("Ami3f_Mutuelle_Indiv", ami3FMutuelIndivService);
-        this.serviceMap.put("Apicil_Mutuelle_Indiv", ApicilMutuelIndivService);
-        this.serviceMap.put("Apivia_Mutuelle_Indiv", apiviaMutuelIndivService);
-        this.serviceMap.put("April_Mutuelle_Indiv", aprilMutuelIndivService);
-        this.serviceMap.put("Eca_Mutuelle_Indiv", ecaMutuelIndivService);
-        this.serviceMap.put("Henner_Mutuelle_Indiv", hennerMutuelIndivService);
-        this.serviceMap.put("Quatrem_Mutuelle_Indiv", quatremIndivMutuelIndivService);
-        this.serviceMap.put("Repam_Mutuelle_Indiv", repamMutuelIndivService);
-        this.serviceMap.put("Smiso_Mutuelle_Indiv", smisoMutuelIndivService);
+        this.serviceMap.put("Alptis_Mutuelle_Indiv", alptisMIService);
+        this.serviceMap.put("Ami3f_Mutuelle_Indiv", ami3fMIService);
+        this.serviceMap.put("Apicil_Mutuelle_Indiv", apicilMIService);
+        this.serviceMap.put("Apivia_Mutuelle_Indiv", apiviaMIService);
+        this.serviceMap.put("April_Mutuelle_Indiv", aprilMIService);
+        this.serviceMap.put("Eca_Mutuelle_Indiv", ecaHeomieMIService);
+        this.serviceMap.put("Henner_Mutuelle_Indiv", hennerMIService);
+        this.serviceMap.put("Quatrem_Mutuelle_Indiv", quatremMIService);
+        this.serviceMap.put("Repam_Mutuelle_Indiv", repamMIService);
+        this.serviceMap.put("Smiso_Mutuelle_Indiv", smisoMIService);
+        this.serviceMap.put("Ffa_Mutuelle_Indiv", ffaMIService);
+        this.serviceMap.put("Hodeva_Mutuelle_Indiv", hodevaMIService);
+        this.serviceMap.put("Malakoff_Mutuelle_Indiv", malakoffMIService);
     }
 
-    // Méthode pour récupérer les tarifs pour chaque compte
     public List<Tarif> getTarifsForComptes(List<Compte> comptes, FluxData flux) {
         List<Tarif> tarifs = new ArrayList<>();
         for (Compte compte : comptes) {
-             // Récupération du service correspondant au fournisseur du compte
              LaunchedService service = serviceMap.get(compte.getNomFournisseur());
-             if (service != null) {
-                 tarifs.add(service.getResultFrom(compte, flux));
+             if (nonNull(service)) {
+                 try {
+                     tarifs.add(service.getResultFrom(compte, flux));
+                 } catch (Exception e) {
+                     logger.error("Échec de la recherche pour le fournisseur: {}", compte.getNomFournisseur(), e);
+                     Tarif tarifErreur = new Tarif();
+                     tarifErreur.setNom(compte.getNomFournisseur());
+                     tarifErreur.setExecution(false);
+                     tarifErreur.setErreur(e.getMessage());
+                     tarifs.add(tarifErreur);
+                 }
              } else {
                  logger.warn("Aucun service trouvé pour le fournisseur: {}", compte.getNomFournisseur());
              }
